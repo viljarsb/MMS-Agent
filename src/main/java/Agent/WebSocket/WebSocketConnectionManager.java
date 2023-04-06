@@ -29,8 +29,10 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -69,6 +71,7 @@ public class WebSocketConnectionManager implements IWebSocketConnectionManager, 
         return connection;
     }
 
+
     @Override
     public CompletableFuture<IAuthenticatedConnection> connectAuthenticated(
             @NonNull RouterInfo routerInfo,
@@ -94,11 +97,34 @@ public class WebSocketConnectionManager implements IWebSocketConnectionManager, 
     {
         try
         {
-            String alias = tlsConfig.getTLSContextFactory().getCertAlias();
-            X509Certificate certificate = (X509Certificate) tlsConfig.getTLSContextFactory().getKeyStore().getCertificate(alias);
+            SslContextFactory tlsContextFactory = tlsConfig.getTLSContextFactory();
+            tlsContextFactory.getCertAlias();
+            System.out.println("tlsContextFactory.getCertAlias() = " + tlsContextFactory.getCertAlias());
+
+            KeyStore keyStore = tlsConfig.getTLSContextFactory().getKeyStore();
+
+            Enumeration<String> aliases = keyStore.aliases();
+
+            String alias = null;
+            while (aliases.hasMoreElements())
+            {
+                String currentAlias = aliases.nextElement();
+                if (keyStore.isCertificateEntry(currentAlias))
+                {
+                    alias = currentAlias;
+                    break;
+                }
+            }
+
+            if (alias == null)
+            {
+                throw new MMSSecurityException("No certificate found in KeyStore.");
+            }
+
+            X509Certificate certificate = (X509Certificate) keyStore.getCertificate(alias);
+
             return CertificateHandler.getIdentityFromCert(certificate);
         }
-
         catch (Exception ex)
         {
             throw new MMSSecurityException("Error occurred while retrieving certificate from keystore.", ex);

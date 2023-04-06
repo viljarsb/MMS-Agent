@@ -4,6 +4,7 @@ import Agent.Exceptions.AgentConnectionHandlerInitException;
 import Agent.ServiceDiscovery.IDiscoveryListener;
 import Agent.ServiceDiscovery.RouterInfo;
 import Agent.TLSConfiguration.TLSConfiguration;
+import Agent.TLSConfiguration.mTLSConfiguration;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -15,10 +16,14 @@ public class Test
     {
         IAgentConnectionHandler agentConnectionHandler = AgentConnectionHandlerFactory.create();
 
-        String keystorePath = "C:\\\\Users\\\\Viljar\\\\IdeaProjects\\\\MMS-Agent\\\\src\\\\main\\\\resources\\\\truststore-root-ca.p12";
-        String keystorePassword = "changeit";
-        TLSConfiguration tlsConfiguration = new TLSConfiguration(keystorePath, keystorePassword);
+        String truststore = "C:\\\\Users\\\\Viljar\\\\IdeaProjects\\\\MMS-Agent\\\\src\\\\main\\\\resources\\\\truststore-root-ca.p12";
+        String trusstorePass = "changeit";
+
+        String keystore = "C:\\\\Users\\\\Viljar\\\\IdeaProjects\\\\MMS-Agent\\\\src\\\\main\\\\resources\\\\keystoreTest.p12";
+        String keystorePass = "42frkmce9jat62ticuorlrm0vq";
+        mTLSConfiguration mTLSConfiguration = new mTLSConfiguration(truststore, trusstorePass, keystore, keystorePass);
         TestImpl testImpl = new TestImpl();
+
         agentConnectionHandler.discover(new IDiscoveryListener()
         {
             @Override
@@ -27,7 +32,7 @@ public class Test
                 for (RouterInfo routerInfo : routerInfos)
                 {
                     System.out.println("Found router:" + routerInfo);
-                    agentConnectionHandler.connectAnonymously(routerInfo, tlsConfiguration, testImpl);
+                    agentConnectionHandler.connectAuthenticated(routerInfo, mTLSConfiguration, testImpl);
                 }
             }
         });
