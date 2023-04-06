@@ -1,7 +1,8 @@
 package Agent.Subscriptions;
 
 
-import Agent.Misc.SubjectValidator;
+import Agent.Utils.ProtocolMessageUtils;
+import Agent.Utils.SubjectValidator;
 import Protocols.MMTP.MessageFormats.MessageType;
 import Protocols.MMTP.MessageFormats.ProtocolMessage;
 import Protocols.MMTP.MessageFormats.Register;
@@ -10,6 +11,8 @@ import com.google.protobuf.ByteString;
 import lombok.NonNull;
 import org.eclipse.jetty.websocket.api.Session;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -62,14 +65,16 @@ public class SubjectSubscriptionHandler implements ISubjectSubscriptionHandler
                 List<String> newSubjects = subjects.stream().filter(SubjectValidator::validate).filter(subscriptions::add).collect(Collectors.toList());
                 if (!newSubjects.isEmpty())
                 {
-                    ProtocolMessage message = buildProtocolMessage(MessageType.REGISTER, Register.newBuilder().addAllInterests(newSubjects).build().toByteString());
-                    session.getRemote().sendBytes(message.toByteString().asReadOnlyByteBuffer());
+                    ByteString data = Register.newBuilder().addAllInterests(newSubjects).build().toByteString();
+                    ProtocolMessageUtils.buildAndSendProtocolMessage(session, MessageType.REGISTER, data);
                 }
                 listener.onSuccess();
             }
-            catch (Exception e)
+
+            catch (IOException ex)
             {
-                listener.onFailure(e);
+                System.out.println("Failed to send subscription message: " + ex.getCause());
+                listener.onFailure(ex);
             }
         });
     }
@@ -129,7 +134,8 @@ public class SubjectSubscriptionHandler implements ISubjectSubscriptionHandler
                 List<String> removedSubjects = subjects.stream().filter(subscriptions::remove).collect(Collectors.toList());
                 if (!removedSubjects.isEmpty())
                 {
-                    session.getRemote().sendBytes(buildProtocolMessage(MessageType.UNREGISTER, Unregister.newBuilder().addAllInterests(removedSubjects).build().toByteString()).toByteString().asReadOnlyByteBuffer());
+                    ByteString data = Unregister.newBuilder().addAllInterests(removedSubjects).build().toByteString();
+                    ProtocolMessageUtils.buildAndSendProtocolMessage(session, MessageType.UNREGISTER, data);
                 }
                 listener.onSuccess();
             }
@@ -207,19 +213,6 @@ public class SubjectSubscriptionHandler implements ISubjectSubscriptionHandler
     public void clear()
     {
         this.subscriptions.clear();
-    }
-
-
-    /**
-     * Builds a {@link ProtocolMessage} with the given message type and content.
-     *
-     * @param messageType the type of message to build
-     * @param content     the content of the message
-     * @return a ProtocolMessage with the given message type and content
-     */
-    protected ProtocolMessage buildProtocolMessage(@NonNull MessageType messageType, @NonNull ByteString content)
-    {
-        return ProtocolMessage.newBuilder().setType(messageType).setContent(content).build();
     }
 }
 

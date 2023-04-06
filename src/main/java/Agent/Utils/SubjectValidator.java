@@ -1,4 +1,4 @@
-package Agent.Misc;
+package Agent.Utils;
 
 public class SubjectValidator
 {

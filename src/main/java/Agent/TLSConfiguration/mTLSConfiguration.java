@@ -1,5 +1,6 @@
 package Agent.TLSConfiguration;
 
+import lombok.Getter;
 import lombok.NonNull;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
@@ -8,6 +9,7 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
  * Configuration object for mutual TLS communication,
  * must be used when connect to the edge router in authenticated mode.
  */
+@Getter
 public class mTLSConfiguration extends TLSConfiguration
 {
     private final String keyStorePath;

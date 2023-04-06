@@ -1,8 +1,10 @@
 package Agent.Subscriptions;
 
+import Agent.Utils.ProtocolMessageUtils;
 import Protocols.MMTP.MessageFormats.MessageType;
 import Protocols.MMTP.MessageFormats.Register;
 import Protocols.MMTP.MessageFormats.Unregister;
+import com.google.protobuf.ByteString;
 import lombok.NonNull;
 import org.eclipse.jetty.websocket.api.Session;
 
@@ -48,7 +50,8 @@ public class DmSubscriptionHandler extends SubjectSubscriptionHandler implements
             {
                 if (subscribedToDM.compareAndSet(false, true))
                 {
-                    session.getRemote().sendBytes(buildProtocolMessage(MessageType.REGISTER, Register.newBuilder().setWantDirectMessages(true).build().toByteString()).toByteString().asReadOnlyByteBuffer());
+                    ByteString data = Register.newBuilder().setWantDirectMessages(true).build().toByteString();
+                    ProtocolMessageUtils.buildAndSendProtocolMessage(session, MessageType.REGISTER, data);
                 }
                 listener.onSuccess();
             }
@@ -109,7 +112,8 @@ public class DmSubscriptionHandler extends SubjectSubscriptionHandler implements
             {
                 if (subscribedToDM.compareAndSet(true, false))
                 {
-                    session.getRemote().sendBytes(buildProtocolMessage(MessageType.UNREGISTER, Unregister.newBuilder().setWantDirectMessages(true).build().toByteString()).toByteString().asReadOnlyByteBuffer());
+                    ByteString data = Unregister.newBuilder().setWantDirectMessages(true).build().toByteString();
+                    ProtocolMessageUtils.buildAndSendProtocolMessage(session, MessageType.UNREGISTER, data);
                 }
                 listener.onSuccess();
             }

@@ -1,11 +1,15 @@
 package Agent.TLSConfiguration;
 
+import lombok.Getter;
 import lombok.NonNull;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+
+import java.security.Security;
 
 /**
  * TLS configuration object, must be used when connecting to the edge router in anonymous mode.
  */
+@Getter
 public class TLSConfiguration
 {
     protected String trustStorePath;
@@ -14,7 +18,8 @@ public class TLSConfiguration
 
     /**
      * Constructs a TLS configuration with the specified trust store path and password.
-     * @param trustStorePath the path to the trust store file
+     *
+     * @param trustStorePath     the path to the trust store file
      * @param trustStorePassword the password for the trust store
      * @throws NullPointerException if any of the arguments is null
      */
@@ -24,8 +29,10 @@ public class TLSConfiguration
         this.trustStorePassword = trustStorePassword;
     }
 
+
     /**
      * Returns an SSL context factory for TLS communication.
+     *
      * @return an SSL context factory
      */
     public SslContextFactory.Client getTLSContextFactory()
@@ -35,7 +42,7 @@ public class TLSConfiguration
         sslContextFactory.setTrustStorePath(trustStorePath);
         sslContextFactory.setTrustStorePassword(trustStorePassword);
         sslContextFactory.setTrustManagerFactoryAlgorithm("PKIX");
-        sslContextFactory.setProvider("BC");
+        sslContextFactory.setProvider("SunX509");
         sslContextFactory.setProtocol("TLSv1.3");
         sslContextFactory.setEndpointIdentificationAlgorithm(null);
 

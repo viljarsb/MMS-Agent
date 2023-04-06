@@ -1,6 +1,6 @@
 package Protocols.MMTP.Validators;
 
-import Agent.Misc.MrnValidator;
+import Agent.Utils.MrnValidator;
 import Protocols.MMTP.MessageFormats.DirectApplicationMessage;
 import Protocols.MMTP.MessageFormats.Register;
 import Protocols.MMTP.MessageFormats.SubjectCastApplicationMessage;

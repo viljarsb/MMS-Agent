@@ -4,7 +4,7 @@ import Agent.MMTP.MessageFormats.DirectApplicationMessage;
 import Agent.MMTP.MessageFormats.Register;
 import Agent.MMTP.MessageFormats.SubjectCastApplicationMessage;
 import Agent.MMTP.MessageFormats.Unregister;
-import Agent.Misc.MrnValidator;
+import Agent.Utils.MrnValidator;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

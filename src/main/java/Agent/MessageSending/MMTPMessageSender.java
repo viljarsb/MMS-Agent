@@ -2,6 +2,7 @@ package Agent.MessageSending;
 
 
 import Agent.Exceptions.SendingException;
+import Agent.Utils.ProtocolMessageUtils;
 import Protocols.MMTP.MMTPUtils;
 import Protocols.MMTP.MessageFormats.DirectApplicationMessage;
 import Protocols.MMTP.MessageFormats.MessageType;
@@ -65,7 +66,7 @@ public class MMTPMessageSender implements IMMTPMessageSender
             try
             {
                 DirectApplicationMessage message = prepareDirectMessage(destinations, payload, expires);
-                send(createProtocolMessage(MessageType.DIRECT_APPLICATION_MESSAGE, message));
+                ProtocolMessageUtils.buildAndSendProtocolMessage(session, MessageType.DIRECT_APPLICATION_MESSAGE, message.toByteString());
                 log.debug("Sent direct message with ID {} to destinations {}", message.getId(), destinations);
                 sendListener.onSuccess(message.getId());
             }
@@ -94,7 +95,7 @@ public class MMTPMessageSender implements IMMTPMessageSender
             try
             {
                 DirectApplicationMessage message = prepareDirectMessage(destinations, payload, expires);
-                send(createProtocolMessage(MessageType.DIRECT_APPLICATION_MESSAGE, message));
+                ProtocolMessageUtils.buildAndSendProtocolMessage(session, MessageType.DIRECT_APPLICATION_MESSAGE, message.toByteString());
                 log.debug("Sent direct message with ID {} to destinations {}", message.getId(), destinations);
                 return message.getId();
             }
@@ -122,7 +123,7 @@ public class MMTPMessageSender implements IMMTPMessageSender
             try
             {
                 SubjectCastApplicationMessage message = prepareSubjectCastMessage(subject, payload, expires);
-                send(createProtocolMessage(MessageType.SUBJECT_CAST_APPLICATION_MESSAGE, message));
+                ProtocolMessageUtils.buildAndSendProtocolMessage(session, MessageType.SUBJECT_CAST_APPLICATION_MESSAGE, message.toByteString());
                 log.debug("Published message with ID {} to subject {}", message.getId(), subject);
                 sendListener.onSuccess(message.getId());
             }
@@ -151,7 +152,7 @@ public class MMTPMessageSender implements IMMTPMessageSender
             try
             {
                 SubjectCastApplicationMessage message = prepareSubjectCastMessage(subject, payload, expires);
-                send(createProtocolMessage(MessageType.SUBJECT_CAST_APPLICATION_MESSAGE, message));
+                ProtocolMessageUtils.buildAndSendProtocolMessage(session, MessageType.SUBJECT_CAST_APPLICATION_MESSAGE, message.toByteString());
                 log.debug("Published message with ID {} to subject {}", message.getId(), subject);
                 return message.getId();
             }
@@ -163,6 +164,7 @@ public class MMTPMessageSender implements IMMTPMessageSender
         });
     }
 
+
     /**
      * Executes the specified runnable asynchronously.
      *
@@ -172,6 +174,7 @@ public class MMTPMessageSender implements IMMTPMessageSender
     {
         executor.execute(task);
     }
+
 
     /**
      * Executes the specified supplier asynchronously and returns a CompletableFuture containing its result.
@@ -184,6 +187,7 @@ public class MMTPMessageSender implements IMMTPMessageSender
     {
         return CompletableFuture.supplyAsync(task, executor);
     }
+
 
     /**
      * Prepares a direct application message to the specified destinations with the given payload and expiration time.
@@ -198,6 +202,7 @@ public class MMTPMessageSender implements IMMTPMessageSender
     {
         return createAndValidateDirectApplicationMessage(destinations, payload, expires);
     }
+
 
     /**
      * Prepares a subject-cast application message to the specified subject with the given payload and expiration time.
@@ -245,39 +250,5 @@ public class MMTPMessageSender implements IMMTPMessageSender
         SubjectCastApplicationMessage message = MMTPUtils.createSubjectCastApplicationMessage(subject, maritimeResourceName, payload, expires);
         MMTPValidator.validate(message);
         return message;
-    }
-
-    /**
-     * Creates a protocol message of the specified message type and content.
-     *
-     * @param messageType The message type.
-     * @param message The message content.
-     * @return The created protocol message.
-     */
-    private ProtocolMessage createProtocolMessage(@NonNull MessageType messageType, @NonNull GeneratedMessageV3 message)
-    {
-        return ProtocolMessage.newBuilder()
-                .setType(messageType)
-                .setContent(message.toByteString())
-                .build();
-    }
-
-    /**
-     * Sends the given protocol message over the WebSocket connection.
-     *
-     * @param protocolMessage The protocol message to send.
-     * @throws SendingException if an error occurs while sending the message.
-     */
-    private void send(@NonNull ProtocolMessage protocolMessage) throws SendingException
-    {
-        ByteBuffer buffer = protocolMessage.toByteString().asReadOnlyByteBuffer();
-        try
-        {
-            session.getRemote().sendBytes(buffer);
-        }
-        catch (Exception ex)
-        {
-            throw new SendingException("Failed to send message", ex);
-        }
     }
 }

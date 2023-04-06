@@ -26,6 +26,9 @@ import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
+import javax.net.ssl.SSLContext;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -60,14 +63,15 @@ public class WebSocketConnectionManager implements IWebSocketConnectionManager, 
             @NonNull AnonymousAdapter listener)
     {
         return connectInternal(routerInfo, tlsConfig.getTLSContextFactory(), listener)
-                .thenApply(this::createAnonymousConnection);
+                .thenApply(session -> createAnonymousConnection(session, listener));
     }
 
 
-    private AnonymousConnection createAnonymousConnection(Session session)
+    private AnonymousConnection createAnonymousConnection(Session session, AnonymousAdapter listener)
     {
         AnonymousConnection connection = new AnonymousConnection(session, this, new SubjectSubscriptionHandler(session, executor));
         connectionMap.put(session, connection);
+        listener.onConnect(connection);
         return connection;
     }
 
@@ -82,7 +86,7 @@ public class WebSocketConnectionManager implements IWebSocketConnectionManager, 
         {
             PKIIdentity identity = extractIdentityFromTLSConfig(tlsConfig);
             return connectInternal(routerInfo, tlsConfig.getTLSContextFactory(), listener)
-                    .thenApply(session -> createAuthenticatedConnection(session, identity));
+                    .thenApply(session -> createAuthenticatedConnection(session, identity, listener));
         }
 
         catch (MMSSecurityException ex)
@@ -95,21 +99,22 @@ public class WebSocketConnectionManager implements IWebSocketConnectionManager, 
 
     private PKIIdentity extractIdentityFromTLSConfig(mTLSConfiguration tlsConfig) throws MMSSecurityException
     {
+        FileInputStream fis = null;
         try
         {
-            SslContextFactory tlsContextFactory = tlsConfig.getTLSContextFactory();
-            tlsContextFactory.getCertAlias();
-            System.out.println("tlsContextFactory.getCertAlias() = " + tlsContextFactory.getCertAlias());
+            String ksPath = tlsConfig.getKeyStorePath();
+            String ksPassword = tlsConfig.getKeyStorePassword();
+            KeyStore ks = KeyStore.getInstance("PKCS12");
+            fis = new FileInputStream(ksPath);
+            ks.load(fis, ksPassword.toCharArray());
 
-            KeyStore keyStore = tlsConfig.getTLSContextFactory().getKeyStore();
-
-            Enumeration<String> aliases = keyStore.aliases();
+            Enumeration<String> aliases = ks.aliases();
 
             String alias = null;
             while (aliases.hasMoreElements())
             {
                 String currentAlias = aliases.nextElement();
-                if (keyStore.isCertificateEntry(currentAlias))
+                if (ks.isCertificateEntry(currentAlias))
                 {
                     alias = currentAlias;
                     break;
@@ -121,23 +126,38 @@ public class WebSocketConnectionManager implements IWebSocketConnectionManager, 
                 throw new MMSSecurityException("No certificate found in KeyStore.");
             }
 
-            X509Certificate certificate = (X509Certificate) keyStore.getCertificate(alias);
-
+            X509Certificate certificate = (X509Certificate) ks.getCertificate(alias);
             return CertificateHandler.getIdentityFromCert(certificate);
         }
+
         catch (Exception ex)
         {
             throw new MMSSecurityException("Error occurred while retrieving certificate from keystore.", ex);
         }
+
+        finally
+        {
+            if (fis != null)
+            {
+                try
+                {
+                    fis.close();
+                }
+                catch (IOException ex)
+                {
+                    log.error("Error occurred while closing FileInputStream.", ex);
+                }
+            }
+        }
     }
 
 
-    private AuthenticatedConnection createAuthenticatedConnection(Session session, PKIIdentity identity)
+    private AuthenticatedConnection createAuthenticatedConnection(Session session, PKIIdentity identity, AuthenticatedAdapter listener)
     {
         AuthenticatedConnection connection = new AuthenticatedConnection(session, this, new DmSubscriptionHandler(session, executor),
                 new MMTPMessageSender(session, identity.getMrn(), executor), identity);
-
         connectionMap.put(session, connection);
+        listener.onConnect(connection);
         return connection;
     }
 
@@ -173,7 +193,6 @@ public class WebSocketConnectionManager implements IWebSocketConnectionManager, 
         HttpClient httpClient = new HttpClient(tlsContextFactory);
         WebSocketClient client = new WebSocketClient(httpClient);
         // httpClient.setBindAddress(address);
-        IConnection connection = null;
         try
         {
             httpClient.start();
