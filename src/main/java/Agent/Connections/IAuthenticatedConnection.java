@@ -1,9 +1,8 @@
 package Agent.Connections;
 
 import Agent.Exceptions.ConnectException;
-import Agent.MessageSending.MessageSendListener;
+import Agent.MessageSending.MMTPSendingListener;
 import Agent.Subscriptions.ISubscribeListener;
-import net.maritimeconnectivity.pki.PKIIdentity;
 
 import java.time.Instant;
 import java.util.List;
@@ -15,17 +14,15 @@ public interface IAuthenticatedConnection extends IAnonymousConnection
 
     CompletableFuture<Void> subscribeToDM() throws ConnectException;
 
-    void sendDirect(String destination, byte[] payload, Instant expires, MessageSendListener listener) throws ConnectException;
+    void sendDirect(String destination, byte[] payload, Instant expires, MMTPSendingListener listener) throws ConnectException;
 
     CompletableFuture<String> sendDirect(String subject, byte[] payload, Instant expires) throws ConnectException;
 
-    void sendDirect(List<String> destinations, byte[] payload, Instant expires, MessageSendListener listener) throws ConnectException;
+    void sendDirect(List<String> destinations, byte[] payload, Instant expires, MMTPSendingListener listener) throws ConnectException;
 
     CompletableFuture<String> sendDirect(List<String> destinations, byte[] payload, Instant expires) throws ConnectException;
 
-    void publish(String subject, byte[] payload, Instant expires, MessageSendListener listener) throws ConnectException;
+    void publish(String subject, byte[] payload, Instant expires, MMTPSendingListener listener) throws ConnectException;
 
     CompletableFuture<String> publish(String subject, byte[] payload, Instant expires) throws ConnectException;
-
-    PKIIdentity getIdentity();
 }

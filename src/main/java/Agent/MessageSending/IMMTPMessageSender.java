@@ -18,7 +18,7 @@ public interface IMMTPMessageSender
      * @param expires the expiration time
      * @param sendListener a listener to be notified of the send result
      */
-    void sendDirectMessage(List<String> destinations, byte[] payload, Instant expires, MessageSendListener sendListener);
+    void sendDirectMessage(List<String> destinations, byte[] payload, Instant expires, MMTPSendingListener sendListener);
 
     /**
      * Sends a directed message to the specified destinations with the given payload and expiration time.
@@ -41,7 +41,7 @@ public interface IMMTPMessageSender
      * @param expires the expiration time
      * @param sendListener a listener to be notified of the send result
      */
-    void publish(String subject, byte[] payload, Instant expires, MessageSendListener sendListener);
+    void publish(String subject, byte[] payload, Instant expires, MMTPSendingListener sendListener);
     /**
      * Publishes a subject-cast message with the given subject, payload, and expiration time.
      * Returns a {@code CompletableFuture} that completes with the message ID on success or with an

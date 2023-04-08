@@ -155,7 +155,7 @@ public class WebSocketConnectionManager implements IWebSocketConnectionManager, 
     private AuthenticatedConnection createAuthenticatedConnection(Session session, PKIIdentity identity, AuthenticatedAdapter listener)
     {
         AuthenticatedConnection connection = new AuthenticatedConnection(session, this, new DmSubscriptionHandler(session, executor),
-                new MMTPMessageSender(session, identity.getMrn(), executor), identity);
+                new MMTPMessageSender(session, identity.getMrn(), executor));
         connectionMap.put(session, connection);
         listener.onConnect(connection);
         return connection;

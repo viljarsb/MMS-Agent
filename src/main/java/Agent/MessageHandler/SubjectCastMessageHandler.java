@@ -1,10 +1,11 @@
 package Agent.MessageHandler;
 
-import Protocols.MMTP.MessageFormats.DirectApplicationMessage;
-import Protocols.MMTP.MessageFormats.ProtocolMessage;
-import Protocols.MMTP.MessageFormats.SubjectCastApplicationMessage;
-import Protocols.MMTP.Validators.MMTPValidationException;
-import Protocols.MMTP.Validators.MMTPValidator;
+
+import Agent.MMTP.MessageFormats.DirectApplicationMessage;
+import Agent.MMTP.MessageFormats.ProtocolMessage;
+import Agent.MMTP.MessageFormats.SubjectCastApplicationMessage;
+import Agent.Utils.Validators.MMTPValidationException;
+import Agent.Utils.Validators.MMTPValidator;
 import com.google.protobuf.InvalidProtocolBufferException;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;

@@ -1,21 +1,17 @@
 package Agent.MessageSending;
 
 
-import Agent.Exceptions.SendingException;
+import Agent.MMTP.MessageFormats.DirectApplicationMessage;
+import Agent.MMTP.MessageFormats.MessageType;
+import Agent.MMTP.MessageFormats.SubjectCastApplicationMessage;
 import Agent.Utils.ProtocolMessageUtils;
-import Protocols.MMTP.MMTPUtils;
-import Protocols.MMTP.MessageFormats.DirectApplicationMessage;
-import Protocols.MMTP.MessageFormats.MessageType;
-import Protocols.MMTP.MessageFormats.ProtocolMessage;
-import Protocols.MMTP.MessageFormats.SubjectCastApplicationMessage;
-import Protocols.MMTP.Validators.MMTPValidationException;
-import Protocols.MMTP.Validators.MMTPValidator;
-import com.google.protobuf.GeneratedMessageV3;
+import Agent.Utils.MMTPUtils;
+import Agent.Utils.Validators.MMTPValidationException;
+import Agent.Utils.Validators.MMTPValidator;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.websocket.api.Session;
 
-import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -59,7 +55,7 @@ public class MMTPMessageSender implements IMMTPMessageSender
      * @param sendListener  the listener to invoke when the message has been sent or if sending failed
      */
     @Override
-    public void sendDirectMessage(@NonNull List<String> destinations, @NonNull byte[] payload, Instant expires, @NonNull MessageSendListener sendListener)
+    public void sendDirectMessage(@NonNull List<String> destinations, @NonNull byte[] payload, Instant expires, @NonNull MMTPSendingListener sendListener)
     {
         executeAsync(() ->
         {
@@ -116,7 +112,7 @@ public class MMTPMessageSender implements IMMTPMessageSender
      * @param sendListener The listener for send events.
      */
     @Override
-    public void publish(@NonNull String subject, @NonNull byte[] payload, Instant expires, @NonNull MessageSendListener sendListener)
+    public void publish(@NonNull String subject, @NonNull byte[] payload, Instant expires, @NonNull MMTPSendingListener sendListener)
     {
         executeAsync(() ->
         {

@@ -2,13 +2,12 @@ package Agent.Connections;
 
 import Agent.Exceptions.ConnectException;
 import Agent.MessageSending.IMMTPMessageSender;
-import Agent.MessageSending.MessageSendListener;
+import Agent.MessageSending.MMTPSendingListener;
 import Agent.Subscriptions.IDmSubscriptionHandler;
 import Agent.Subscriptions.ISubscribeListener;
 import Agent.WebSocket.DisconnectionHook;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import net.maritimeconnectivity.pki.PKIIdentity;
 import org.eclipse.jetty.websocket.api.Session;
 
 import java.time.Instant;
@@ -25,25 +24,22 @@ public class AuthenticatedConnection extends AnonymousConnection implements IAut
 {
     private final IDmSubscriptionHandler subscriptionHandler;
     private final IMMTPMessageSender messageSender;
-    private final PKIIdentity identity;
 
 
     /**
-     * Creates a new AuthenticatedConnection instance.
+     * Creates a new SMMPAuthConnection instance.
      *
      * @param session             The underlying WebSocket session.
      * @param disconnectionHook   A hook to be called when the connection is disconnected.
      * @param subscriptionHandler The subject subscription handler.
      * @param messageSender       The MTTP message sender.
-     * @param identity            The PKI identity of the user.
      */
-    public AuthenticatedConnection(Session session, DisconnectionHook disconnectionHook, IDmSubscriptionHandler subscriptionHandler, IMMTPMessageSender messageSender, PKIIdentity identity)
+    public AuthenticatedConnection(Session session, DisconnectionHook disconnectionHook, IDmSubscriptionHandler subscriptionHandler, IMMTPMessageSender messageSender)
     {
         super(session, disconnectionHook, subscriptionHandler);
         this.connectionStatus = ConnectionStatus.CONNECTED_AUTHENTICATED;
         this.subscriptionHandler = subscriptionHandler;
         this.messageSender = messageSender;
-        this.identity = identity;
     }
 
 
@@ -96,7 +92,7 @@ public class AuthenticatedConnection extends AnonymousConnection implements IAut
      * @param listener    The message send listener.
      * @throws ConnectException If the connection is not alive.
      */
-    public void sendDirect(@NonNull String destination, @NonNull byte[] payload, Instant expires, @NonNull MessageSendListener listener) throws ConnectException
+    public void sendDirect(@NonNull String destination, @NonNull byte[] payload, Instant expires, @NonNull MMTPSendingListener listener) throws ConnectException
     {
         checkConnectionAlive();
         log.info("Sending direct message to destination: {}", destination);
@@ -107,17 +103,17 @@ public class AuthenticatedConnection extends AnonymousConnection implements IAut
     /**
      * Sends a direct message to a subject asynchronously.
      *
-     * @param subject The subject of the message.
+     * @param destination The destination of the message.
      * @param payload The payload of the message.
      * @param expires The expiration time of the message.
      * @return A completable future that completes when the message is sent.
      * @throws ConnectException If the connection is not alive.
      */
-    public CompletableFuture<String> sendDirect(@NonNull String subject, byte[] payload, Instant expires) throws ConnectException
+    public CompletableFuture<String> sendDirect(@NonNull String destination, byte[] payload, Instant expires) throws ConnectException
     {
         checkConnectionAlive();
-        log.info("Sending direct message to subject: {}", subject);
-        return sendDirect(List.of(subject), payload, expires);
+        log.info("Sending direct message to subject: {}", destination);
+        return sendDirect(List.of(destination), payload, expires);
     }
 
 
@@ -130,7 +126,7 @@ public class AuthenticatedConnection extends AnonymousConnection implements IAut
      * @param listener     The message send listener.
      * @throws ConnectException If the connection is not alive.
      */
-    public void sendDirect(@NonNull List<String> destinations, @NonNull byte[] payload, Instant expires, @NonNull MessageSendListener listener) throws ConnectException
+    public void sendDirect(@NonNull List<String> destinations, @NonNull byte[] payload, Instant expires, @NonNull MMTPSendingListener listener) throws ConnectException
     {
         checkConnectionAlive();
         log.info("Sending direct message to destinations: {}", destinations);
@@ -164,7 +160,7 @@ public class AuthenticatedConnection extends AnonymousConnection implements IAut
      * @param listener The message send listener.
      * @throws ConnectException If the connection is not alive.
      */
-    public void publish(@NonNull String subject, @NonNull byte[] payload, Instant expires, @NonNull MessageSendListener listener) throws ConnectException
+    public void publish(@NonNull String subject, @NonNull byte[] payload, Instant expires, @NonNull MMTPSendingListener listener) throws ConnectException
     {
         checkConnectionAlive();
         log.info("Publishing message to subject: {}", subject);
@@ -186,12 +182,5 @@ public class AuthenticatedConnection extends AnonymousConnection implements IAut
         checkConnectionAlive();
         log.info("Publishing message to subject: {}", subject);
         return messageSender.publish(subject, payload, expires);
-    }
-
-
-    @Override
-    public PKIIdentity getIdentity()
-    {
-        return identity;
     }
 }

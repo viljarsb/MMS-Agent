@@ -1,8 +1,8 @@
 package Agent.MessageHandler;
 
-import Protocols.MMTP.MessageFormats.DirectApplicationMessage;
-import Protocols.MMTP.Validators.MMTPValidationException;
-import Protocols.MMTP.Validators.MMTPValidator;
+import Agent.MMTP.MessageFormats.DirectApplicationMessage;
+import Agent.Utils.Validators.MMTPValidationException;
+import Agent.Utils.Validators.MMTPValidator;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -37,6 +37,7 @@ public class DirectMessageHandler extends SubjectCastMessageHandler
         {
             MMTPValidator.validate(message);
         }
+
         catch (MMTPValidationException ex)
         {
             log.error("The application message is not valid, dropping it", ex);

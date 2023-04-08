@@ -19,8 +19,8 @@ public interface AuthenticatedAdapter extends AgentAdapter, IConnectionListener,
 
     /**
      * A default implementation of the onConnect method from the IConnectionListener interface.
-     * This just calls the onConnect method with the AuthenticatedConnection object instead of the IConnection object.
-     * Really just here to make the code a bit cleaner, so people who use this does not have to cast the IConnection object to an AuthenticatedConnection object.
+     * This just calls the onConnect method with the SMMPAuthConnection object instead of the IConnection object.
+     * Really just here to make the code a bit cleaner, so people who use this does not have to cast the IConnection object to an SMMPAuthConnection object.
      *
      * @param connection The connection that was established.
      */

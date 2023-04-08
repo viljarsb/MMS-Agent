@@ -1,9 +1,9 @@
 package Agent.Subscriptions;
 
+import Agent.MMTP.MessageFormats.MessageType;
+import Agent.MMTP.MessageFormats.Register;
+import Agent.MMTP.MessageFormats.Unregister;
 import Agent.Utils.ProtocolMessageUtils;
-import Protocols.MMTP.MessageFormats.MessageType;
-import Protocols.MMTP.MessageFormats.Register;
-import Protocols.MMTP.MessageFormats.Unregister;
 import com.google.protobuf.ByteString;
 import lombok.NonNull;
 import org.eclipse.jetty.websocket.api.Session;

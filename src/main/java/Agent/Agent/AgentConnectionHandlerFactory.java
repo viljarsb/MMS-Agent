@@ -16,7 +16,7 @@ public class AgentConnectionHandlerFactory
 {
     private static final Map<InetAddress, IAgentConnectionHandler> instances = new ConcurrentHashMap<>();
 
-    private AgentConnectionHandlerFactory() {}
+    public AgentConnectionHandlerFactory() {}
 
 
     /**
@@ -34,6 +34,7 @@ public class AgentConnectionHandlerFactory
         {
             address = NetworkUtils.getDefaultInetAddress();
         }
+
         catch (UnknownHostException ex)
         {
             throw new AgentConnectionHandlerInitException("Failed to init agent connection handler", ex);

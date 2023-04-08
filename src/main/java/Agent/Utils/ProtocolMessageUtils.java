@@ -1,7 +1,7 @@
 package Agent.Utils;
 
-import Protocols.MMTP.MessageFormats.MessageType;
-import Protocols.MMTP.MessageFormats.ProtocolMessage;
+import Agent.MMTP.MessageFormats.MessageType;
+import Agent.MMTP.MessageFormats.ProtocolMessage;
 import com.google.protobuf.ByteString;
 import lombok.NonNull;
 import org.eclipse.jetty.websocket.api.Session;

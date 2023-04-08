@@ -1,49 +1,32 @@
-package Agent.Connections;
+package SMMPClient.Connections;
 
+import Agent.Connections.AnonymousConnection;
 import Agent.Exceptions.ConnectException;
 import Agent.Subscriptions.ISubscribeListener;
-import Agent.Subscriptions.ISubjectSubscriptionHandler;
-import Agent.WebSocket.DisconnectionHook;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import org.eclipse.jetty.websocket.api.Session;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+
 /**
- * An implementation of the {@link IAnonymousConnection} interface representing an anonymous connection to the edge router.
+ * A wrapper around an AnonymousConnection that provides a more convenient interface for SMMP.
+ * This wrapper really doesn't do much, but it does make the API a little more intuitive,
+ * and users of this library don't need to know about the Agent library.
  */
-@Slf4j
-public class AnonymousConnection extends Connection implements IAnonymousConnection
+public class SMMPAnonConnection
 {
-    protected ISubjectSubscriptionHandler subscriptionHandler;
+    private final AnonymousConnection connection;
 
 
     /**
-     * Creates a new SMMPAnonConnection instance.
+     * Creates a new SMMPAnonConnection.
      *
-     * @param session             The underlying WebSocket session.
-     * @param disconnectionHook   A hook to be called when the connection is disconnected.
-     * @param subscriptionHandler The handler for subject subscriptions.
+     * @param connection The connection to wrap.
      */
-    public AnonymousConnection(Session session, DisconnectionHook disconnectionHook, ISubjectSubscriptionHandler subscriptionHandler)
+    public SMMPAnonConnection(AnonymousConnection connection)
     {
-        super(session, disconnectionHook);
-        this.connectionStatus = ConnectionStatus.CONNECTED_ANONYMOUS;
-        this.subscriptionHandler = subscriptionHandler;
-    }
-
-
-    /**
-     * Returns whether the connection is authenticated.
-     *
-     * @return Always returns false for anonymous connections.
-     */
-    @Override
-    public boolean isAuthenticated()
-    {
-        return false;
+        this.connection = connection;
     }
 
 
@@ -54,12 +37,9 @@ public class AnonymousConnection extends Connection implements IAnonymousConnect
      * @param listener The listener to be notified of subscription events.
      * @throws ConnectException If the connection is not alive.
      */
-    @Override
     public void subscribeToSubject(@NonNull String subject, @NonNull ISubscribeListener listener) throws ConnectException
     {
-        checkConnectionAlive();
-        log.info("Subscribing to subject: {}", subject);
-        subscribeToSubjects(List.of(subject), listener);
+        connection.subscribeToSubject(subject, listener);
     }
 
 
@@ -70,12 +50,9 @@ public class AnonymousConnection extends Connection implements IAnonymousConnect
      * @return A CompletableFuture that completes when the subscription is complete.
      * @throws ConnectException If the connection is not alive.
      */
-    @Override
     public CompletableFuture<Void> subscribeToSubject(@NonNull String subject) throws ConnectException
     {
-        checkConnectionAlive();
-        log.info("Subscribing to subject: {}", subject);
-        return subscribeToSubjects(List.of(subject));
+        return connection.subscribeToSubject(subject);
     }
 
 
@@ -86,12 +63,9 @@ public class AnonymousConnection extends Connection implements IAnonymousConnect
      * @param listener The listener to be notified of subscription events.
      * @throws ConnectException If the connection is not alive.
      */
-    @Override
     public void subscribeToSubjects(@NonNull List<String> subjects, @NonNull ISubscribeListener listener) throws ConnectException
     {
-        checkConnectionAlive();
-        log.info("Subscribing to subjects: {}", subjects);
-        subscriptionHandler.subscribeToSubjects(subjects, listener);
+        connection.subscribeToSubjects(subjects, listener);
     }
 
 
@@ -102,12 +76,9 @@ public class AnonymousConnection extends Connection implements IAnonymousConnect
      * @return A CompletableFuture that completes when the subscription is complete.
      * @throws ConnectException If the connection is not alive.
      */
-    @Override
     public CompletableFuture<Void> subscribeToSubjects(@NonNull List<String> subjects) throws ConnectException
     {
-        checkConnectionAlive();
-        log.info("Subscribing to subjects: {}", subjects);
-        return subscriptionHandler.subscribeToSubjects(subjects);
+        return connection.subscribeToSubjects(subjects);
     }
 
 
@@ -118,12 +89,9 @@ public class AnonymousConnection extends Connection implements IAnonymousConnect
      * @param listener The listener to be notified of when unsubscribed.
      * @throws ConnectException If the connection is not alive.
      */
-    @Override
     public void unsubscribeFromSubject(String subject, ISubscribeListener listener) throws ConnectException
     {
-        checkConnectionAlive();
-        log.info("Unsubscribing from subject: {}", subject);
-        unsubscribeFromSubjects(List.of(subject), listener);
+        connection.unsubscribeFromSubject(subject, listener);
     }
 
 
@@ -134,12 +102,9 @@ public class AnonymousConnection extends Connection implements IAnonymousConnect
      * @return A CompletableFuture that completes when the unsubscription is complete.
      * @throws ConnectException If the connection is not alive.
      */
-    @Override
     public CompletableFuture<Void> unsubscribeFromSubject(String subject) throws ConnectException
     {
-        checkConnectionAlive();
-        log.info("Unsubscribing from subject: {}", subject);
-        return unsubscribeFromSubjects(List.of(subject));
+        return connection.unsubscribeFromSubject(subject);
     }
 
 
@@ -150,12 +115,9 @@ public class AnonymousConnection extends Connection implements IAnonymousConnect
      * @param listener The listener to be notified of when unsubscribed.
      * @throws ConnectException If the connection is not alive.
      */
-    @Override
     public void unsubscribeFromSubjects(List<String> subjects, ISubscribeListener listener) throws ConnectException
     {
-        checkConnectionAlive();
-        log.info("Unsubscribing from subjects: {}", subjects);
-        subscriptionHandler.unsubscribeFromSubjects(subjects, listener);
+        connection.unsubscribeFromSubjects(subjects, listener);
     }
 
 
@@ -166,11 +128,9 @@ public class AnonymousConnection extends Connection implements IAnonymousConnect
      * @return A CompletableFuture that completes when the unsubscriptions are complete.
      * @throws ConnectException If the connection is not alive.
      */
-    @Override
     public CompletableFuture<Void> unsubscribeFromSubjects(List<String> subjects) throws ConnectException
     {
-        checkConnectionAlive();
-        log.info("Unsubscribing from subjects: {}", subjects);
-        return subscriptionHandler.unsubscribeFromSubjects(subjects);
+        return connection.unsubscribeFromSubjects(subjects);
     }
+
 }
