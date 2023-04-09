@@ -9,6 +9,6 @@ import java.util.List;
  */
 public interface ResendHook
 {
-    void resend(String destination, byte[] message, Instant expires);
     void resend(List<String> destinations, byte[] message, Instant expires);
+    void ackResponse(String messageId, String destination);
 }

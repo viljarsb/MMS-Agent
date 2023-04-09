@@ -1,150 +1,76 @@
 package SMMPClient.Acks.AckEntry;
 
-import SMMPClient.Acks.DeliveryResult;
-import SMMPClient.Acks.Listeners.MultiDeliveryListener;
+import SMMPClient.Acks.Listeners.MultiDeliveryCompletionHandler;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.*;
 
-
-/**
- * An entry in the ack table. This is used to track the status of a multi-destination message.
- * This class is used when the user wants to be notified when a message has been delivered to all destinations.
- */
-public class MultiDestAckEntry extends AckEntry
+public class MultiDestAckEntry extends AckEntry<MultiDeliveryCompletionHandler>
 {
-    private final List<String> unacknowledgedDestinations;
-    private final byte[] message;
-    private final List<String> acknowledgedDestinations = new ArrayList<>();
-    private final MultiDeliveryListener listener;
-    private final CompletableFuture<DeliveryResult> future;
+    private final List<String> destinations;
+    private final Set<String> acknowledgedDestinations = new HashSet<>();
 
 
-    /**
-     * Create a new multi-destination ack entry
-     *
-     * @param messageId    The message id
-     * @param destinations The destinations
-     * @param message      The message
-     * @param expires      The expiry time
-     * @param listener     The listener to notify when the message has been delivered to all destinations
-     */
-    public MultiDestAckEntry(String messageId, List<String> destinations, byte[] message, Instant expires, MultiDeliveryListener listener)
+    public MultiDestAckEntry(String messageId, List<String> destinations, byte[] message, Instant expires, MultiDeliveryCompletionHandler handler)
     {
-        super(messageId, expires);
-        this.unacknowledgedDestinations = destinations;
-        this.message = message;
-        this.listener = listener;
-        this.future = null;
+        super(messageId, message, expires, handler);
+        this.destinations = destinations;
     }
 
 
-    /**
-     * Create a new multi-destination ack entry
-     *
-     * @param messageId    The message id
-     * @param destinations The destinations
-     * @param message      The message
-     * @param expires      The expiry time
-     * @param future       The future to complete when the message has been delivered to all destinations
-     */
-    public MultiDestAckEntry(String messageId, List<String> destinations, byte[] message, Instant expires, CompletableFuture<DeliveryResult> future)
+    @Override
+    public synchronized boolean acknowledge(String destination)
     {
-        super(messageId, expires);
-        this.unacknowledgedDestinations = destinations;
-        this.message = message;
-        this.listener = null;
-        this.future = future;
-    }
-
-
-
-    /**
-     * Gets the message that is being delivered.
-     *
-     * @return The message
-     */
-    public byte[] getMessage()
-    {
-        return message;
-    }
-
-
-    /**
-     * Acknowledge a destination. This is called when a message has been delivered to a destination.
-     * If all destinations have been acknowledged, the listener or future will be notified.
-     *
-     * @param destination The destination
-     */
-    public void acknowledge(String destination)
-    {
-        unacknowledgedDestinations.remove(destination);
-        acknowledgedDestinations.add(destination);
-
-        if (isFullyAcknowledged())
+        if (destinations.contains(destination))
         {
-            if (listener != null)
+            acknowledgedDestinations.add(destination);
+            handler.onAck(destination);
+            if (acknowledgedDestinations.size() == destinations.size())
             {
-                listener.onAllAck();
+                handler.onFullyAcked(destinations);
             }
 
-            else if (future != null)
-            {
-                DeliveryResult result = new DeliveryResult(getMessageId(), getAcknowledgedDestinations(), getUnacknowledgedDestinations());
-                assert future != null;
-                future.complete(result);
-            }
+            return true;
         }
+
+        return false;
     }
 
 
-    /**
-     * Gets the destinations that have been acknowledged.
-     *
-     * @return The destinations
-     */
-    public List<String> getAcknowledgedDestinations()
+    @Override
+    public synchronized boolean isFullyAcknowledged()
     {
-        return acknowledgedDestinations;
+        return acknowledgedDestinations.size() == destinations.size();
     }
 
 
-    /**
-     * Gets the destinations that have not been acknowledged.
-     *
-     * @return The destinations
-     */
-    public List<String> getUnacknowledgedDestinations()
+    @Override
+    public synchronized List<String> getUnacknowledgedDestinations()
     {
+        List<String> unacknowledgedDestinations = new ArrayList<>(destinations);
+        unacknowledgedDestinations.removeAll(acknowledgedDestinations);
         return unacknowledgedDestinations;
     }
 
 
-    /**
-     * Called when the message has timed out. This will notify the listener or future.
-     */
+    @Override
+    public List<String> getAcknowledgedDestinations()
+    {
+        return new ArrayList<>(acknowledgedDestinations);
+    }
+
+
+
     @Override
     public void timeout()
     {
-        if (listener != null)
-        {
-            listener.onTimeout(getAcknowledgedDestinations(), getUnacknowledgedDestinations());
-        }
-
-        else if (future != null)
-        {
-            DeliveryResult result = new DeliveryResult(getMessageId(), getAcknowledgedDestinations(), getUnacknowledgedDestinations());
-            assert future != null;
-            future.complete(result);
-        }
+        handler.onTimeout(getUnacknowledgedDestinations(), getAcknowledgedDestinations());
     }
 
 
     @Override
-    public boolean isFullyAcknowledged()
+    public MultiDeliveryCompletionHandler getHandler()
     {
-        return unacknowledgedDestinations.size() == 0;
+        return handler;
     }
 }

@@ -4,17 +4,21 @@ package SMMPClient.Connections;
 import Agent.Connections.AuthenticatedConnection;
 import Agent.Exceptions.ConnectException;
 import SMMPClient.Acks.*;
-import SMMPClient.Acks.Listeners.DeliveryListener;
-import SMMPClient.Acks.Listeners.MultiDeliveryListener;
+import SMMPClient.Acks.Listeners.MultiDeliveryCompletionHandler;
 import SMMPClient.Acks.Listeners.SMMPSendingListener;
+import SMMPClient.Acks.Listeners.SingleDeliveryCompletionHandler;
 import SMMPClient.Crypto.CryptoUtils;
 import SMMPClient.Crypto.KeyringManager;
 import SMMPClient.Exceptions.CryptoExceptions.EncryptionException;
 import SMMPClient.Exceptions.CryptoExceptions.SignatureGenerationException;
 import SMMPClient.Exceptions.PkiExceptions.CertificateValidationException;
 import SMMPClient.Exceptions.PkiExceptions.MissingCertificateException;
+import SMMPClient.MessageFormats.MessageType;
+import SMMPClient.MessageFormats.ProtocolMessage;
 import SMMPClient.MessageFormats.SMMPMessage;
 import SMMPClient.MessageFormats.SMMPUtils;
+import SMMPClient.MessageFormats.SMMPAckResponse;
+import com.google.protobuf.ByteString;
 import lombok.NonNull;
 
 import java.security.*;
@@ -106,18 +110,27 @@ public class SMMPAuthConnection extends SMMPAnonConnection implements ResendHook
     }
 
 
+    private SMMPAckResponse createSMMPAckResponse(String messageId, byte[] signature, byte[] certificate)
+    {
+        return SMMPUtils.createAckResponse(messageId, signature, certificate);
+    }
+
+
     /**
      * Sends a message to a single destination.
      *
      * @param destination The destination to send the message to.
      * @param payload     The payload to send.
      * @param expires     The time at which the message expires.
+     * @param type        The type of the message.
      * @return A future that completes when the message has been sent.
      * @throws ConnectException If the underlying connection is not connected.
      */
-    private CompletableFuture<String> sendInternal(String destination, byte[] payload, Instant expires) throws ConnectException
+    private CompletableFuture<String> sendInternal(String destination, byte[] payload, Instant expires, MessageType type) throws ConnectException
     {
-        return connection.sendDirect(destination, payload, expires);
+        ProtocolMessage protocolMessage = ProtocolMessage.newBuilder().setType(type).setContent(ByteString.copyFrom(payload)).build();
+        byte[] protocolMessageBytes = protocolMessage.toByteArray();
+        return connection.sendDirect(destination, protocolMessageBytes, expires);
     }
 
 
@@ -127,42 +140,27 @@ public class SMMPAuthConnection extends SMMPAnonConnection implements ResendHook
      * @param destinations The destinations to send the message to.
      * @param payload      The payload to send.
      * @param expires      The time at which the message expires.
+     * @param type         The type of the message.
      * @return A future that completes when the message has been sent.
      * @throws ConnectException If the underlying connection is not connected.
      */
-    private CompletableFuture<String> sendInternal(List<String> destinations, byte[] payload, Instant expires) throws ConnectException
+    private CompletableFuture<String> sendInternal(List<String> destinations, byte[] payload, Instant expires, MessageType type) throws ConnectException
     {
+        ProtocolMessage protocolMessage = ProtocolMessage.newBuilder().setType(type).setContent(ByteString.copyFrom(payload)).build();
+        byte[] protocolMessageBytes = protocolMessage.toByteArray();
         return connection.sendDirect(destinations, payload, expires);
     }
 
 
-    /**
-     * Publishes a message to a subject.
-     *
-     * @param subject The subject to publish the message to.
-     * @param payload The payload to send.
-     * @param expires The time at which the message expires.
-     * @return A future that completes when the message has been sent.
-     * @throws ConnectException If the underlying connection is not connected.
-     */
     private CompletableFuture<String> publishInternal(String subject, byte[] payload, Instant expires) throws ConnectException
     {
-        return connection.publish(subject, payload, expires);
+        ProtocolMessage protocolMessage = ProtocolMessage.newBuilder().setType(MessageType.MESSAGE).setContent(ByteString.copyFrom(payload)).build();
+        byte[] protocolMessageBytes = protocolMessage.toByteArray();
+        return connection.publish(subject, protocolMessageBytes, expires);
     }
 
 
-    /**
-     * Sends a message to a single destination with required ack.
-     * The message is optionally encrypted.
-     *
-     * @param destination The destination to send the message to.
-     * @param payload     The payload to send.
-     * @param expires     The time at which the message expires.
-     * @param encrypt     Whether to encrypt the message.
-     * @param listener    The listener to notify when the message has been sent.
-     * @throws ConnectException If the underlying connection is not connected.
-     */
-    public void sendDirect(@NonNull String destination, @NonNull byte[] payload, Instant expires, @NonNull Boolean encrypt, @NonNull DeliveryListener listener) throws ConnectException
+    public void sendDirect(@NonNull String destination, @NonNull byte[] payload, Instant expires, @NonNull Boolean encrypt, @NonNull SingleDeliveryCompletionHandler handler) throws ConnectException
     {
         try
         {
@@ -174,39 +172,29 @@ public class SMMPAuthConnection extends SMMPAnonConnection implements ResendHook
             byte[] signature = signPayload(payload);
             byte[] certificate = keyringManager.getMyCertificate().getEncoded();
             SMMPMessage message = createSMMPMessage(payload, signature, encrypt, true, certificate);
-            CompletableFuture<String> future = sendInternal(destination, message.toByteArray(), expires);
+            CompletableFuture<String> future = sendInternal(destination, message.toByteArray(), expires, MessageType.MESSAGE);
 
             future.whenComplete((messageID, ex) ->
             {
                 if (ex != null)
                 {
-                    listener.onFailed(ex);
+                    handler.onFailure(ex);
                 }
 
                 else
                 {
-                    ackTracker.waitForSingleDestAck(message.getMessageID(), destination, message.toByteArray(), expires, this, listener);
+                    ackTracker.waitForSingleDestAck(message.getMessageID(), destination, message.toByteArray(), expires, this, handler);
                 }
             });
         }
 
         catch (MissingCertificateException | CertificateEncodingException | SignatureGenerationException | EncryptionException | CertificateValidationException | KeyStoreException ex)
         {
-            listener.onFailed(ex);
+            handler.onFailure(ex);
         }
     }
 
 
-    /**
-     * Sends a message to a single destination without required ack.
-     *
-     * @param destination The destinations to send the message to.
-     * @param payload     The payload to send.
-     * @param expires     The time at which the message expires.
-     * @param encrypt     Whether to encrypt the message.
-     * @param listener    The listener to notify when the message has been sent.
-     * @throws ConnectException If the underlying connection is not connected.
-     */
     public void sendDirect(@NonNull String destination, @NonNull byte[] payload, Instant expires, @NonNull Boolean encrypt, @NonNull SMMPSendingListener listener) throws ConnectException
     {
         try
@@ -220,7 +208,7 @@ public class SMMPAuthConnection extends SMMPAnonConnection implements ResendHook
             byte[] certificate = keyringManager.getMyCertificate().getEncoded();
             SMMPMessage message = createSMMPMessage(payload, signature, encrypt, false, certificate);
 
-            CompletableFuture<String> future = sendInternal(destination, message.toByteArray(), expires);
+            CompletableFuture<String> future = sendInternal(destination, message.toByteArray(), expires, MessageType.MESSAGE);
             future.whenComplete((messageID, ex) ->
             {
                 if (ex != null)
@@ -242,55 +230,36 @@ public class SMMPAuthConnection extends SMMPAnonConnection implements ResendHook
     }
 
 
-    /**
-     * Sends a message to multiple destinations without required ack.
-     *
-     * @param destinations The destinations to send the message to.
-     * @param payload      The payload to send.
-     * @param expires      The time at which the message expires.
-     * @param listener     The listener to notify when the message has been sent.
-     * @throws ConnectException If the underlying connection is not connected.
-     */
-    public void sendDirect(@NonNull List<String> destinations, @NonNull byte[] payload, Instant expires, @NonNull MultiDeliveryListener listener) throws ConnectException
+    public void sendDirect(@NonNull List<String> destinations, @NonNull byte[] payload, Instant expires, @NonNull MultiDeliveryCompletionHandler handler) throws ConnectException
     {
         try
         {
             byte[] signature = signPayload(payload);
             byte[] certificate = keyringManager.getMyCertificate().getEncoded();
             SMMPMessage message = createSMMPMessage(payload, signature, false, true, certificate);
-            CompletableFuture<String> future = sendInternal(destinations, message.toByteArray(), expires);
+            CompletableFuture<String> future = sendInternal(destinations, message.toByteArray(), expires, MessageType.MESSAGE);
 
             future.whenComplete((messageID, ex) ->
             {
                 if (ex != null)
                 {
-                    listener.onFailed(ex);
+                    handler.onFailure(ex);
                 }
 
                 else
                 {
-                    ackTracker.waitForMultiDestAck(message.getMessageID(), destinations, message.toByteArray(), expires, this, listener);
+                    ackTracker.waitForMultiDestAck(message.getMessageID(), destinations, message.toByteArray(), expires, this, handler);
                 }
             });
         }
 
         catch (CertificateEncodingException | SignatureGenerationException ex)
         {
-            listener.onFailed(ex);
+            handler.onFailure(ex);
         }
     }
 
 
-    /**
-     * Sends a message to multiple destinations without required ack.
-     *
-     * @param destinations The destinations to send the message to.
-     * @param payload      The payload to send.
-     * @param expires      The time at which the message expires.
-     * @param encrypt      Whether to encrypt the message.
-     * @param listener     The listener to notify when the message has been sent.
-     * @throws ConnectException If the underlying connection is not connected.
-     */
     public void sendDirect(@NonNull List<String> destinations, @NonNull byte[] payload, Instant expires, @NonNull Boolean encrypt, @NonNull SMMPSendingListener listener) throws ConnectException
     {
         try
@@ -299,7 +268,7 @@ public class SMMPAuthConnection extends SMMPAnonConnection implements ResendHook
             byte[] certificate = keyringManager.getMyCertificate().getEncoded();
             SMMPMessage message = createSMMPMessage(payload, signature, encrypt, false, certificate);
 
-            CompletableFuture<String> future = sendInternal(destinations, message.toByteArray(), expires);
+            CompletableFuture<String> future = sendInternal(destinations, message.toByteArray(), expires, MessageType.MESSAGE);
             future.whenComplete((messageID, ex) ->
             {
                 if (ex != null)
@@ -321,15 +290,6 @@ public class SMMPAuthConnection extends SMMPAnonConnection implements ResendHook
     }
 
 
-    /**
-     * Sends a message to a specific subject.
-     *
-     * @param subject  The subject to send the message to.
-     * @param payload  The payload to send.
-     * @param expires  The time at which the message expires.
-     * @param listener The listener to notify when the message has been sent.
-     * @throws ConnectException If the underlying connection is not connected.
-     */
     public void publish(@NonNull String subject, @NonNull byte[] payload, Instant expires, @NonNull SMMPSendingListener listener) throws ConnectException
     {
         try
@@ -360,19 +320,12 @@ public class SMMPAuthConnection extends SMMPAnonConnection implements ResendHook
     }
 
 
-    /**
-     * A resend hook that is called by the ack tracker when a message needs to be resent.
-     *
-     * @param destination the destination to send the message to.
-     * @param message     the message to send.
-     * @param expires     the time at which the message expires.
-     */
     @Override
-    public void resend(String destination, byte[] message, Instant expires)
+    public void resend(List<String> destinations, byte[] message, Instant expires)
     {
         try
         {
-            sendInternal(destination, message, expires);
+            sendInternal(destinations, message, expires, MessageType.MESSAGE);
         }
         catch (ConnectException ignored)
         {
@@ -380,22 +333,20 @@ public class SMMPAuthConnection extends SMMPAnonConnection implements ResendHook
     }
 
 
-    /**
-     * A resend hook that is called by the ack tracker when a message needs to be resent.
-     *
-     * @param destinations the destinations to send the message to.
-     * @param message      the message to send.
-     * @param expires      the time at which the message expires.
-     */
     @Override
-    public void resend(List<String> destinations, byte[] message, Instant expires)
+    public void ackResponse(String messageId, String destination)
     {
         try
         {
-            sendInternal(destinations, message, expires);
+            byte[] signature = signPayload(messageId.getBytes());
+            byte[] certificate = keyringManager.getMyCertificate().getEncoded();
+            SMMPAckResponse ackResponse = createSMMPAckResponse(messageId, signature, certificate);
+            sendInternal(destination, ackResponse.toByteArray(), null, MessageType.ACKRESPONSE);
         }
-        catch (ConnectException ignored)
+
+        catch (ConnectException | SignatureGenerationException | CertificateEncodingException ignored)
         {
+
         }
     }
 }

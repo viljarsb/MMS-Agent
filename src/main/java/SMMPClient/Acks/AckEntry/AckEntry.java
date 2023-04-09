@@ -1,22 +1,28 @@
 package SMMPClient.Acks.AckEntry;
 
 import java.time.Instant;
+import java.util.List;
 
-
-/**
- * An entry in the ack table. This is used to track the status of a message.
- * Abstract class, use one of the subclasses.
- */
-public abstract class AckEntry
+public abstract class AckEntry<T>
 {
-    private final String messageId;
-    private final Instant expires;
+    protected final String messageId;
+    protected final byte[] message;
+    protected final Instant expires;
+    protected final T handler;
 
 
-    public AckEntry(String messageId, Instant expires)
+    public AckEntry(String messageId, byte[] message, Instant expires, T handler)
     {
         this.messageId = messageId;
+        this.message = message;
         this.expires = expires;
+        this.handler = handler;
+    }
+
+
+    public final String getMessageId()
+    {
+        return messageId;
     }
 
 
@@ -25,14 +31,22 @@ public abstract class AckEntry
         return expires;
     }
 
-    public final String getMessageId()
+
+    public final byte[] getMessage()
     {
-        return messageId;
+        return message;
     }
+
+
+    public abstract boolean acknowledge(String destination);
+
+    public abstract boolean isFullyAcknowledged();
+
+    public abstract List<String> getUnacknowledgedDestinations();
+
+    public abstract List<String> getAcknowledgedDestinations();
 
     public abstract void timeout();
 
-    public abstract void acknowledge(String destination);
-
-    public abstract boolean isFullyAcknowledged();
+    public abstract T getHandler();
 }
