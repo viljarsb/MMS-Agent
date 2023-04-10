@@ -1,6 +1,7 @@
 package SMMPClient.Adapters;
 
 
+import SMMPClient.Connections.ISMMPAuthConnection;
 import SMMPClient.Connections.SMMPAuthConnection;
 
 import java.time.Instant;
@@ -11,7 +12,7 @@ import java.util.List;
  */
 public interface SMMPAuthAdapter
 {
-    void onConnect(SMMPAuthConnection connection);
+    void onConnect(ISMMPAuthConnection connection);
 
     void onSubjectCastMessage(String messageId, String sender, String subject, Instant expires, byte[] message);
 

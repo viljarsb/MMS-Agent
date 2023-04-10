@@ -16,10 +16,6 @@ public enum MessageType
    * <code>ACK = 1;</code>
    */
   ACK(1),
-  /**
-   * <code>ACKRESPONSE = 2;</code>
-   */
-  ACKRESPONSE(2),
   UNRECOGNIZED(-1),
   ;
 
@@ -31,10 +27,6 @@ public enum MessageType
    * <code>ACK = 1;</code>
    */
   public static final int ACK_VALUE = 1;
-  /**
-   * <code>ACKRESPONSE = 2;</code>
-   */
-  public static final int ACKRESPONSE_VALUE = 2;
 
 
   public final int getNumber() {
@@ -63,7 +55,6 @@ public enum MessageType
     switch (value) {
       case 0: return MESSAGE;
       case 1: return ACK;
-      case 2: return ACKRESPONSE;
       default: return null;
     }
   }
@@ -94,7 +85,7 @@ public enum MessageType
   }
   public static final com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return SMMPClient.MessageFormats.SMMPMessages.getDescriptor().getEnumTypes().get(0);
+    return SMMPMessages.getDescriptor().getEnumTypes().get(0);
   }
 
   private static final MessageType[] VALUES = values();

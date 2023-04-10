@@ -29,11 +29,6 @@ public final class SMMPMessages {
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_SMMPClient_SMMP_SMMPAck_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_SMMPClient_SMMP_SMMPAckResponse_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_SMMPClient_SMMP_SMMPAckResponse_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -51,10 +46,8 @@ public final class SMMPMessages {
       "gnature\030\004 \001(\014\022\023\n\013certificate\030\005 \001(\014\022\017\n\007pa" +
       "yload\030\006 \001(\014\"D\n\007SMMPAck\022\021\n\tmessageID\030\001 \001(" +
       "\t\022\021\n\tsignature\030\002 \001(\014\022\023\n\013certificate\030\003 \001(" +
-      "\014\"L\n\017SMMPAckResponse\022\021\n\tmessageID\030\001 \001(\t\022" +
-      "\021\n\tsignature\030\002 \001(\014\022\023\n\013certificate\030\003 \001(\014*" +
-      "4\n\013MessageType\022\013\n\007MESSAGE\020\000\022\007\n\003ACK\020\001\022\017\n\013" +
-      "ACKRESPONSE\020\002B\020B\014SMMPMessagesP\001b\006proto3"
+      "\014*#\n\013MessageType\022\013\n\007MESSAGE\020\000\022\007\n\003ACK\020\001B\020" +
+      "B\014SMMPMessagesP\001b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -77,12 +70,6 @@ public final class SMMPMessages {
     internal_static_SMMPClient_SMMP_SMMPAck_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_SMMPClient_SMMP_SMMPAck_descriptor,
-        new java.lang.String[] { "MessageID", "Signature", "Certificate", });
-    internal_static_SMMPClient_SMMP_SMMPAckResponse_descriptor =
-      getDescriptor().getMessageTypes().get(3);
-    internal_static_SMMPClient_SMMP_SMMPAckResponse_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_SMMPClient_SMMP_SMMPAckResponse_descriptor,
         new java.lang.String[] { "MessageID", "Signature", "Certificate", });
   }
 

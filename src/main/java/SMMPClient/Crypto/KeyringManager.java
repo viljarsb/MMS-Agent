@@ -1,8 +1,8 @@
 package SMMPClient.Crypto;
 
 import Agent.Exceptions.MMSSecurityException;
-import SMMPClient.Exceptions.PkiExceptions.CertificateValidationException;
-import SMMPClient.Exceptions.PkiExceptions.MissingCertificateException;
+import SMMPClient.Exceptions.CertificateValidationException;
+import SMMPClient.Exceptions.MissingCertificateException;
 import lombok.NonNull;
 import net.maritimeconnectivity.pki.CertificateHandler;
 import net.maritimeconnectivity.pki.PKIIdentity;
@@ -29,7 +29,7 @@ import java.util.Enumeration;
  * The class is designed with a private constructor and a factory method {@code create()} for instantiation,
  * ensuring that the object is properly set up before use.
  */
-public class KeyringManager
+public class KeyringManager implements IKeyringManager
 {
     private final ECPrivateKey myPrivateKey;
     private final ECPublicKey myPublicKey;
@@ -99,6 +99,7 @@ public class KeyringManager
      *
      * @return My private key
      */
+    @Override
     public ECPrivateKey getMyPrivateKey()
     {
         return myPrivateKey;
@@ -110,6 +111,7 @@ public class KeyringManager
      *
      * @return My public key
      */
+    @Override
     public ECPublicKey getMyPublicKey()
     {
         return myPublicKey;
@@ -121,6 +123,7 @@ public class KeyringManager
      *
      * @return My certificate
      */
+    @Override
     public X509Certificate getMyCertificate()
     {
         return myCertificate;
@@ -136,6 +139,7 @@ public class KeyringManager
      * @throws MissingCertificateException    If the keyring doesn't contain a public key for the given MRN
      * @throws CertificateValidationException If the certificate for the given MRN is not trusted
      */
+    @Override
     public ECPublicKey getPublicKey(@NonNull String mrn) throws KeyStoreException, MissingCertificateException, CertificateValidationException
     {
         KeyStore keyring = loadKeyring();
@@ -168,6 +172,7 @@ public class KeyringManager
      * @throws CertificateValidationException If an error occurs while verifying the certificate
      * @throws KeyStoreException              If an error occurs while loading the truststore
      */
+    @Override
     public boolean verifyCertificate(@NonNull X509Certificate certificate) throws CertificateValidationException, KeyStoreException
     {
         KeyStore trustStore = loadTrustStore();
@@ -194,6 +199,78 @@ public class KeyringManager
         }
 
         return false;
+    }
+
+
+    /**
+     * Gets the path of the truststore.
+     *
+     * @return The path of the truststore
+     */
+    @Override
+    public String getTruststorePath()
+    {
+        return tsPath;
+    }
+
+
+    /**
+     * Gets the password of the truststore.
+     *
+     * @return The password of the truststore
+     */
+    @Override
+    public String getTruststorePassword()
+    {
+        return tsPass;
+    }
+
+
+    /**
+     * Gets the path of the keystore.
+     *
+     * @return The path of the keystore
+     */
+    @Override
+    public String getKeystorePath()
+    {
+        return ksPath;
+    }
+
+
+    /**
+     * Gets the password of the keystore.
+     *
+     * @return The password of the keystore
+     */
+    @Override
+    public String getKeystorePassword()
+    {
+        return ksPassword;
+    }
+
+
+    /**
+     * Gets the path of the keyring.
+     *
+     * @return The path of the keyring
+     */
+    @Override
+    public String getKeyringPath()
+    {
+        return keyringPath;
+    }
+
+
+    /**
+     * Gets the password of the keyring.
+     *
+     * @return The password of the keyring
+     */
+    @Override
+    public String getKeyringPassword()
+    {
+        return keyringPassword;
     }
 
 
@@ -370,71 +447,5 @@ public class KeyringManager
         {
             throw new CertificateValidationException("Failed to verify certificate", ex);
         }
-    }
-
-
-    /**
-     * Gets the path of the truststore.
-     *
-     * @return The path of the truststore
-     */
-    public String getTruststorePath()
-    {
-        return tsPath;
-    }
-
-
-    /**
-     * Gets the password of the truststore.
-     *
-     * @return The password of the truststore
-     */
-    public String getTruststorePassword()
-    {
-        return tsPass;
-    }
-
-
-    /**
-     * Gets the path of the keystore.
-     *
-     * @return The path of the keystore
-     */
-    public String getKeystorePath()
-    {
-        return ksPath;
-    }
-
-
-    /**
-     * Gets the password of the keystore.
-     *
-     * @return The password of the keystore
-     */
-    public String getKeystorePassword()
-    {
-        return ksPassword;
-    }
-
-
-    /**
-     * Gets the path of the keyring.
-     *
-     * @return The path of the keyring
-     */
-    public String getKeyringPath()
-    {
-        return keyringPath;
-    }
-
-
-    /**
-     * Gets the password of the keyring.
-     *
-     * @return The password of the keyring
-     */
-    public String getKeyringPassword()
-    {
-        return keyringPassword;
     }
 }

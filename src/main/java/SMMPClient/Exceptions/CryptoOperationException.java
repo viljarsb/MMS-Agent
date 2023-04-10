@@ -1,4 +1,4 @@
-package SMMPClient.Exceptions.CryptoExceptions;
+package SMMPClient.Exceptions;
 
 public class CryptoOperationException extends Exception
 {

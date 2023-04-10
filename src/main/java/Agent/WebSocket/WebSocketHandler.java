@@ -145,6 +145,7 @@ public class WebSocketHandler extends WebSocketAdapter
         return ipAddress;
     }
 
+
     @Override
     public Session getSession()
     {

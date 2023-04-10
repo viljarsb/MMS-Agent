@@ -1,20 +1,22 @@
 package SMMPClient.Adapters;
 
 import Agent.Agent.AuthenticatedAdapter;
+import Agent.Connections.AnonymousConnection;
 import Agent.Connections.AuthenticatedConnection;
 import SMMPClient.Acks.AckTracker;
+import SMMPClient.Connections.SMMPAuthConnection;
 import SMMPClient.Crypto.CryptoUtils;
-import SMMPClient.Crypto.KeyringManager;
-import SMMPClient.Exceptions.CryptoExceptions.DecryptionException;
-import SMMPClient.Exceptions.CryptoExceptions.SignatureVerificationException;
-import SMMPClient.Exceptions.PkiExceptions.CertificateValidationException;
-import SMMPClient.Exceptions.PkiExceptions.MissingCertificateException;
+import SMMPClient.Crypto.IKeyringManager;
+import SMMPClient.Exceptions.CertificateValidationException;
+import SMMPClient.Exceptions.DecryptionException;
+import SMMPClient.Exceptions.MissingCertificateException;
+import SMMPClient.Exceptions.SignatureVerificationException;
 import SMMPClient.MessageFormats.MessageType;
 import SMMPClient.MessageFormats.ProtocolMessage;
 import SMMPClient.MessageFormats.SMMPAck;
 import SMMPClient.MessageFormats.SMMPMessage;
-import SMMPClient.Connections.SMMPAuthConnection;
 import com.google.protobuf.InvalidProtocolBufferException;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayInputStream;
@@ -25,6 +27,8 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 
 /**
@@ -35,34 +39,39 @@ import java.util.List;
 @Slf4j
 public class AuthenticatedAdapterImpl implements AuthenticatedAdapter
 {
-    private final KeyringManager keyringManager;
+    private final Set<String> deliveredToApplication = new ConcurrentSkipListSet<>();
+    private final IKeyringManager keyringManager;
     private final SMMPAuthAdapter adapter;
-    private final AckTracker ackTracker;
+    private AckTracker ackTracker;
 
 
     /**
-     * Constructor for the authenticated adapter implementation.
+     * Creates a new instance of the {@link AuthenticatedAdapterImpl} an SMMP specific implementation of {@link AuthenticatedAdapter}
      *
-     * @param keyringManager The keyring manager used to verify and decrypt the messages.
-     * @param adapter        The SMMP adapter that will receive the callbacks.
+     * @param keyringManager The {@link IKeyringManager} manager used to verify the signatures of the messages
+     * @param adapter        The {@link SMMPAuthAdapter} that will receive the callbacks.
      */
-    public AuthenticatedAdapterImpl(KeyringManager keyringManager, SMMPAuthAdapter adapter)
+    public AuthenticatedAdapterImpl(@NonNull IKeyringManager keyringManager, @NonNull SMMPAuthAdapter adapter)
     {
         this.keyringManager = keyringManager;
         this.adapter = adapter;
-        this.ackTracker = new AckTracker();
     }
 
 
+
     /**
-     * Called when the agent has successfully connected to the edge router in authenticated mode.
+     * Called when the agent has successfully connected to the edge router in anonymous mode.
      * Wraps the connection in a SMMP specific connection and passes it to the SMMP adapter.
+     * <p>
+     * Calls the {@link SMMPAuthAdapter} with a {@link SMMPClient.Connections.ISMMPAuthConnection} as a argument.
      *
-     * @param connection The connection that was established.
+     * @param connection The {@link AnonymousConnection} that was established.
      */
     @Override
     public void onConnect(AuthenticatedConnection connection)
     {
+        log.info("Connected to edge router in authenticated mode");
+        this.ackTracker = new AckTracker(connection, keyringManager.getMyCertificate(), keyringManager.getMyPrivateKey());
         adapter.onConnect(new SMMPAuthConnection(connection, keyringManager, ackTracker));
     }
 
@@ -82,23 +91,31 @@ public class AuthenticatedAdapterImpl implements AuthenticatedAdapter
     {
         try
         {
+            log.debug("Received direct MMTP-Message={} from {} to destinations {}", messageId, sender, destinations);
             ProtocolMessage protocolMessage = ProtocolMessage.parseFrom(message);
 
             if (protocolMessage.getType() == MessageType.MESSAGE)
             {
-                processMessage(protocolMessage, sender, destinations, expires);
+                log.debug("MMTP-Message={} contained a {}", messageId, MessageType.MESSAGE);
+                processDirectMessage(protocolMessage, sender, destinations, expires);
             }
 
             else if (protocolMessage.getType() == MessageType.ACK)
             {
+                log.debug("MMTP-Message={} contained a {}", messageId, MessageType.ACK);
                 processAck(protocolMessage, sender);
+            }
+
+            else if (protocolMessage.getType() == MessageType.UNRECOGNIZED)
+            {
+                log.warn("MMTP-Message={} contained a unrecognized message={}", messageId, MessageType.UNRECOGNIZED);
             }
         }
 
         catch (InvalidProtocolBufferException | DecryptionException | MissingCertificateException | CertificateValidationException | CertificateException | SignatureVerificationException |
-               KeyStoreException e)
+               KeyStoreException ex)
         {
-            log.error("Error while processing message", e);
+            log.warn("Error while processing message={}", messageId, ex);
         }
     }
 
@@ -118,23 +135,31 @@ public class AuthenticatedAdapterImpl implements AuthenticatedAdapter
     {
         try
         {
+            log.debug("Received subject cast MMTP-Message={} from {} with subject {}", messageId, sender, subject);
             ProtocolMessage protocolMessage = ProtocolMessage.parseFrom(message);
 
             if (protocolMessage.getType() == MessageType.MESSAGE)
             {
+                log.debug("MMTP-Message{} contained a {}", messageId, MessageType.MESSAGE);
                 processSubjectCastMessage(protocolMessage, sender, subject, expires);
+            }
+
+            else
+            {
+                log.warn("MMTP-Message={} contain a a message with type ({}). Ignoring message, only {} is supported over subject cast", messageId, protocolMessage.getType(), MessageType.MESSAGE);
             }
         }
 
-        catch (InvalidProtocolBufferException | MissingCertificateException | CertificateValidationException | SignatureVerificationException | KeyStoreException e)
+        catch (InvalidProtocolBufferException | CertificateException | MissingCertificateException | CertificateValidationException | SignatureVerificationException | KeyStoreException ex)
         {
-            log.error("Error while processing message", e);
+            log.warn("Error while processing subject cast MMTP-Message={} from sender {}", messageId, sender, ex);
         }
     }
 
 
     /**
      * Called once the agent has been disconnected from the edge router.
+     * Calls the {@link SMMPAnonAdapter} with the disconnect code and phrase.
      *
      * @param statusCode the status code of the disconnection
      * @param reason     the reason for the disconnection
@@ -142,56 +167,28 @@ public class AuthenticatedAdapterImpl implements AuthenticatedAdapter
     @Override
     public void onDisconnect(int statusCode, String reason)
     {
+        log.info("Disconnected from edge router with status code {} and reason: {}", statusCode, reason);
         adapter.onDisconnect(statusCode, reason);
     }
 
 
     /**
-     * Called once the agent has encountered an error while trying to connect to the edge router.
+     * Called when the agent has encountered an error while connecting to the edge router.
+     * Calls the {@link SMMPAuthAdapter} with the connection error that occurred.
      *
-     * @param ex the throwable that was thrown
+     * @param ex The throwable that was thrown
      */
     @Override
     public void onConnectionError(Throwable ex)
     {
+        log.error("Error occurred while trying to connect to edge router", ex);
         adapter.onConnectionError(ex);
     }
 
 
     /**
-     * Processes a subject cast message. Verifies the signature and sends the message to the SMMP adapter if the signature is valid.
-     *
-     * @param protocolMessage the protocol message
-     * @param sender          the sender of the message
-     * @param subject         the subject of the message
-     * @param expires         the expiration time of the message
-     * @throws MissingCertificateException    If the sender's certificate is missing from the keyring.
-     * @throws CertificateValidationException If the sender's certificate is invalid.
-     * @throws KeyStoreException              If the keyring is not initialized.
-     * @throws InvalidProtocolBufferException If the protocol message is invalid.
-     * @throws SignatureVerificationException If the signature is invalid.
-     */
-    private void processSubjectCastMessage(ProtocolMessage protocolMessage, String sender, String subject, Instant expires) throws MissingCertificateException, CertificateValidationException, KeyStoreException, InvalidProtocolBufferException, SignatureVerificationException
-    {
-        SMMPMessage smmpMessage = SMMPMessage.parseFrom(protocolMessage.getContent());
-        byte[] signature = smmpMessage.getSignature().toByteArray();
-        byte[] content = smmpMessage.getPayload().toByteArray();
-
-        if (smmpMessage.getIsEncrypted())
-        {
-            log.error("Received an encrypted subject cast message from sender: {}", sender);
-            return;
-        }
-
-        if (CryptoUtils.verifySignature(keyringManager.getPublicKey(sender), content, signature))
-        {
-            adapter.onSubjectCastMessage(smmpMessage.getMessageID(), sender, subject, expires, content);
-        }
-    }
-
-
-    /**
      * Processes a message. Verifies the signature, decrypts and sends the message to the SMMP adapter if the signature is valid.
+     *Calls the {@link SMMPAuthAdapter} if the message is valid and trustworthy.
      *
      * @param protocolMessage the protocol message
      * @param sender          the sender of the message
@@ -205,39 +202,53 @@ public class AuthenticatedAdapterImpl implements AuthenticatedAdapter
      * @throws SignatureVerificationException If the signature is invalid.
      * @throws DecryptionException            If the message could not be decrypted.
      */
-    private void processMessage(ProtocolMessage protocolMessage, String sender, List<String> destinations, Instant expires) throws InvalidProtocolBufferException, CertificateException, KeyStoreException, MissingCertificateException, CertificateValidationException, SignatureVerificationException, DecryptionException
+    private void processDirectMessage(ProtocolMessage protocolMessage, String sender, List<String> destinations, Instant expires) throws InvalidProtocolBufferException, CertificateException, KeyStoreException, MissingCertificateException, CertificateValidationException, SignatureVerificationException, DecryptionException
     {
         SMMPMessage smmpMessage = SMMPMessage.parseFrom(protocolMessage.getContent());
+        String messageId = smmpMessage.getMessageID();
         byte[] signature = smmpMessage.getSignature().toByteArray();
         byte[] content = smmpMessage.getPayload().toByteArray();
         X509Certificate certificate = getCertificate(smmpMessage.getCertificate().toByteArray());
 
         if (!verifyCertificate(certificate, sender))
         {
-            log.warn("Received a message from an untrusted sender: {}", sender);
+            log.warn("Received a direct SMMP-message={} from an untrusted sender: {}, ignoring", messageId, sender);
             return;
         }
 
         if (smmpMessage.getIsEncrypted())
         {
+            log.debug("SMMP-message={} is encrypted, decrypting..", messageId);
             content = CryptoUtils.decryptMessage((ECPublicKey) certificate.getPublicKey(), keyringManager.getMyPrivateKey(), content);
         }
 
-        if (CryptoUtils.verifySignature(keyringManager.getPublicKey(sender), content, signature))
+        if (!CryptoUtils.verifySignature(keyringManager.getPublicKey(sender), content, signature))
         {
-            adapter.onDirectMessage(smmpMessage.getMessageID(), destinations, sender, expires, content);
-            log.info("Successfully verified the signature of the message from sender: {}", sender);
+            log.warn("Received a direct SMMP-message={} with an invalid signature from sender: {}, ignoring", messageId, sender);
+            return;
         }
 
-        else
+        if (smmpMessage.getRequiresAck())
         {
-            log.error("Signature verification failed for message from sender: {}", sender);
+            log.warn("Received a direct SMMP-message={} that requires ack from sender: {}, sending ack", messageId, sender);
+            ackTracker.sendAck(messageId, sender);
         }
+
+        if (deliveredToApplication.contains(messageId))
+        {
+            log.warn("Message already delivered to application, likely a retransmit.");
+            return;
+        }
+
+        log.debug("Direct SMMP-message={} valid, passing to application", messageId);
+        deliveredToApplication.add(messageId);
+        adapter.onDirectMessage(smmpMessage.getMessageID(), destinations, sender, expires, content);
     }
 
 
     /**
      * Processes an ack message. Verifies the signature and passes the ack to the ack tracker if the signature is valid.
+     * Calls the {@link SMMPClient.Acks.IAckTracker} to handle the ack.
      *
      * @param protocolMessage the protocol message
      * @param sender          the sender of the message
@@ -257,20 +268,71 @@ public class AuthenticatedAdapterImpl implements AuthenticatedAdapter
 
         if (!verifyCertificate(certificate, sender))
         {
-            log.warn("Received a message from an untrusted sender: {}", sender);
+            log.warn("Received a SMMP-ack for SMMP-Message{} from an untrusted sender: {}, ignoring", ackedMessageId, sender);
             return;
         }
 
-        if (CryptoUtils.verifySignature(keyringManager.getPublicKey(sender), smmpAck.getMessageID().getBytes(), signature))
+        if (!CryptoUtils.verifySignature(keyringManager.getPublicKey(sender), smmpAck.getMessageID().getBytes(), signature))
         {
-            log.info("Successfully verified the signature of the message from sender: {}", sender);
-            ackTracker.acknowledge(ackedMessageId, sender);
+            log.warn("Received a SMMP-ack for SMMP-Message{} with an invalid signature from sender: {}, ignoring", ackedMessageId, sender);
+            return;
         }
 
-        else
+        log.debug("SMMP-Ack for SMMP-Message={} valid, passing to ACK-HANDLER", ackedMessageId);
+        ackTracker.acknowledge(ackedMessageId, sender);
+    }
+
+
+    /**
+     * Processes a subject cast message. Verifies the signature and sends the message to the SMMP adapter if the signature is valid.
+     *Calls the {@link SMMPAuthAdapter} if the message is valid and trustworthy.
+     *
+     * @param protocolMessage the protocol message
+     * @param sender          the sender of the message
+     * @param subject         the subject of the message
+     * @param expires         the expiration time of the message
+     * @throws MissingCertificateException    If the sender's certificate is missing from the keyring.
+     * @throws CertificateValidationException If the sender's certificate is invalid.
+     * @throws KeyStoreException              If the keyring is not initialized.
+     * @throws InvalidProtocolBufferException If the protocol message is invalid.
+     * @throws SignatureVerificationException If the signature is invalid.
+     */
+    private void processSubjectCastMessage(ProtocolMessage protocolMessage, String sender, String subject, Instant expires) throws MissingCertificateException, CertificateValidationException, KeyStoreException, InvalidProtocolBufferException, SignatureVerificationException, CertificateException
+    {
+        SMMPMessage smmpMessage = SMMPMessage.parseFrom(protocolMessage.getContent());
+        String messageId = smmpMessage.getMessageID();
+        byte[] signature = smmpMessage.getSignature().toByteArray();
+        byte[] content = smmpMessage.getPayload().toByteArray();
+        X509Certificate certificate = getCertificate(smmpMessage.getCertificate().toByteArray());
+
+        if (!verifyCertificate(certificate, sender))
         {
-            log.error("Signature verification failed for message from sender: {}", sender);
+            log.warn("Received a subject cast SMMP-message={} from an untrusted sender: {}, ignoring", messageId, sender);
+            return;
         }
+
+        if (smmpMessage.getIsEncrypted())
+        {
+            log.warn("Received a subject cast SMMP-message={} with encryption from sender: {}, ignoring", messageId, sender);
+            return;
+        }
+
+
+        if (!CryptoUtils.verifySignature(keyringManager.getPublicKey(sender), content, signature))
+        {
+            log.warn("Received a subject cast SMMP-message={} with an invalid signature from sender: {}, ignoring", messageId, sender);
+            return;
+        }
+
+        if (deliveredToApplication.contains(messageId))
+        {
+            log.warn("Message already delivered to application, likely a retransmit.");
+            return;
+        }
+
+        log.debug("Subject cast SMMP-message={} valid, passing to application", messageId);
+        deliveredToApplication.add(messageId);
+        adapter.onSubjectCastMessage(smmpMessage.getMessageID(), sender, subject, expires, content);
     }
 
 

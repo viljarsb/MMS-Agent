@@ -7,6 +7,7 @@ import Agent.ServiceDiscovery.IDiscoveryListener;
 import Agent.ServiceDiscovery.RouterInfo;
 import Agent.TLSConfiguration.TLSConfiguration;
 import Agent.TLSConfiguration.mTLSConfiguration;
+import SMMPClient.Acks.AckTracker;
 import SMMPClient.Adapters.AnonymousAdapterImpl;
 import SMMPClient.Adapters.AuthenticatedAdapterImpl;
 import SMMPClient.Adapters.SMMPAnonAdapter;
@@ -17,9 +18,14 @@ import lombok.NonNull;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+
+/**
+ * A simple wrapper around {@link AgentConnectionHandler}
+ */
 public class SMMPConnectionHandler
 {
     private final AgentConnectionHandler agentConnectionHandler;
+
 
     public SMMPConnectionHandler(AgentConnectionHandler connectionHandler)
     {
@@ -39,18 +45,18 @@ public class SMMPConnectionHandler
     }
 
 
-    public CompletableFuture<IAnonymousConnection> connectAnonymously(@NonNull RouterInfo routerInfo, @NonNull KeyringManager keyringManager, @NonNull SMMPAnonAdapter listener)
+    public void connectAnonymously(@NonNull RouterInfo routerInfo, @NonNull KeyringManager keyringManager, @NonNull SMMPAnonAdapter adapter)
     {
-        AnonymousAdapterImpl anonAdapter = new AnonymousAdapterImpl(keyringManager, listener);
+        AnonymousAdapterImpl internalAdapter = new AnonymousAdapterImpl(keyringManager, adapter);
         TLSConfiguration tlsConfiguration = new TLSConfiguration(keyringManager.getTruststorePath(), keyringManager.getTruststorePassword());
-        return agentConnectionHandler.connectAnonymously(routerInfo, tlsConfiguration, anonAdapter);
+        agentConnectionHandler.connectAnonymously(routerInfo, tlsConfiguration, internalAdapter);
     }
 
 
-    public CompletableFuture<IAuthenticatedConnection> connectAuthenticated(@NonNull RouterInfo routerInfo, @NonNull KeyringManager keyringManager, @NonNull SMMPAuthAdapter listener)
+    public void connectAuthenticated(@NonNull RouterInfo routerInfo, @NonNull KeyringManager keyringManager, @NonNull SMMPAuthAdapter adapter)
     {
-        AuthenticatedAdapterImpl authAdapter = new AuthenticatedAdapterImpl(keyringManager, listener);
-        mTLSConfiguration tlsConfig = new mTLSConfiguration(keyringManager.getTruststorePath(), keyringManager.getTruststorePassword(), keyringManager.getKeystorePath(), keyringManager.getKeystorePassword());
-        return agentConnectionHandler.connectAuthenticated(routerInfo, tlsConfig, authAdapter);
+        AuthenticatedAdapterImpl internalAdapter = new AuthenticatedAdapterImpl(keyringManager, adapter);
+        mTLSConfiguration tlsConfiguration = new mTLSConfiguration(keyringManager.getTruststorePath(), keyringManager.getTruststorePassword(), keyringManager.getKeystorePath(), keyringManager.getKeystorePassword());
+        agentConnectionHandler.connectAuthenticated(routerInfo, tlsConfiguration, internalAdapter);
     }
 }

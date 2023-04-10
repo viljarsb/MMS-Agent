@@ -1,4 +1,4 @@
-package SMMPClient.Exceptions.Ack;
+package SMMPClient.Exceptions;
 
 public class AckTimeout extends Exception
 {

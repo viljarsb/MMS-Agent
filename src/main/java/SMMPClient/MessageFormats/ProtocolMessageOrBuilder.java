@@ -16,7 +16,7 @@ public interface ProtocolMessageOrBuilder extends
    * <code>.SMMPClient.SMMP.MessageType type = 1;</code>
    * @return The type.
    */
-  SMMPClient.MessageFormats.MessageType getType();
+  MessageType getType();
 
   /**
    * <code>bytes content = 2;</code>

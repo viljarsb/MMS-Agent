@@ -3,11 +3,14 @@ package SMMPClient.SMMPClient;
 import Agent.Agent.AgentConnectionHandler;
 import Agent.Agent.AgentConnectionHandlerFactory;
 import Agent.Exceptions.AgentConnectionHandlerInitException;
+import SMMPClient.Exceptions.SMMPConnectionHandlerInitException;
 
-
+/**
+ * Wrapper around {@link AgentConnectionHandlerFactory}
+ */
 public class SMMPClientFactory
 {
-    public static SMMPConnectionHandler create(String address)
+    public static SMMPConnectionHandler create(String address) throws SMMPConnectionHandlerInitException
     {
         try
         {
@@ -16,12 +19,12 @@ public class SMMPClientFactory
 
         catch (AgentConnectionHandlerInitException e)
         {
-            throw new RuntimeException(e);
+            throw new SMMPConnectionHandlerInitException("Failed to init SMMP connection handler", e.getCause());
         }
     }
 
 
-    public static SMMPConnectionHandler create()
+    public static SMMPConnectionHandler create() throws SMMPConnectionHandlerInitException
     {
         try
         {
@@ -30,7 +33,7 @@ public class SMMPClientFactory
 
         catch (AgentConnectionHandlerInitException e)
         {
-            throw new RuntimeException(e);
+            throw new SMMPConnectionHandlerInitException("Failed to init SMMP connection handler", e.getCause());
         }
     }
 }

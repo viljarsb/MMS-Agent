@@ -1,5 +1,6 @@
 package SMMPClient.Adapters;
 
+import SMMPClient.Connections.ISMMPAnonConnection;
 import SMMPClient.Connections.SMMPAnonConnection;
 
 import java.time.Instant;
@@ -9,7 +10,7 @@ import java.time.Instant;
  */
 public interface SMMPAnonAdapter
 {
-    void onConnect(SMMPAnonConnection connection);
+    void onConnect(ISMMPAnonConnection connection);
 
     void onSubjectCastMessage(String messageId, String sender, String subject, Instant expires, byte[] message);
 

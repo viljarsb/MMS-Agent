@@ -3,16 +3,17 @@ package SMMPClient.Adapters;
 
 import Agent.Agent.AnonymousAdapter;
 import Agent.Connections.AnonymousConnection;
+import SMMPClient.Connections.SMMPAnonConnection;
 import SMMPClient.Crypto.CryptoUtils;
-import SMMPClient.Crypto.KeyringManager;
-import SMMPClient.Exceptions.CryptoExceptions.SignatureVerificationException;
-import SMMPClient.Exceptions.PkiExceptions.CertificateValidationException;
-import SMMPClient.Exceptions.PkiExceptions.MissingCertificateException;
+import SMMPClient.Crypto.IKeyringManager;
+import SMMPClient.Exceptions.CertificateValidationException;
+import SMMPClient.Exceptions.MissingCertificateException;
+import SMMPClient.Exceptions.SignatureVerificationException;
 import SMMPClient.MessageFormats.MessageType;
 import SMMPClient.MessageFormats.ProtocolMessage;
 import SMMPClient.MessageFormats.SMMPMessage;
-import SMMPClient.Connections.SMMPAnonConnection;
 import com.google.protobuf.InvalidProtocolBufferException;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayInputStream;
@@ -21,6 +22,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
  * A SMMP specific implementation of the anonymous adapter interface provided by the agent.
@@ -30,17 +33,18 @@ import java.time.Instant;
 @Slf4j
 public class AnonymousAdapterImpl implements AnonymousAdapter
 {
-    private final KeyringManager keyringManager;
+    private final Set<String> deliveredToApplication = new ConcurrentSkipListSet<>();
+    private final IKeyringManager keyringManager;
     private final SMMPAnonAdapter adapter;
 
 
     /**
-     * Creates a new instance of the anonymous adapter implementation
+     * Creates a new instance of the {@link AnonymousAdapterImpl} an SMMP specific implementation of {@link AnonymousAdapter}
      *
-     * @param keyringManager The keyring manager used to verify the signatures of the messages
-     * @param adapter        The SMMP adapter that will receive the callbacks.
+     * @param keyringManager The {@link IKeyringManager} manager used to verify the signatures of the messages
+     * @param adapter        The {@link SMMPAnonAdapter} that will receive the callbacks.
      */
-    public AnonymousAdapterImpl(KeyringManager keyringManager, SMMPAnonAdapter adapter)
+    public AnonymousAdapterImpl(@NonNull IKeyringManager keyringManager, @NonNull SMMPAnonAdapter adapter)
     {
         this.keyringManager = keyringManager;
         this.adapter = adapter;
@@ -50,14 +54,16 @@ public class AnonymousAdapterImpl implements AnonymousAdapter
     /**
      * Called when the agent has successfully connected to the edge router in anonymous mode.
      * Wraps the connection in a SMMP specific connection and passes it to the SMMP adapter.
+     * <p>
+     * Calls the {@link SMMPAnonAdapter} with a {@link SMMPClient.Connections.ISMMPAnonConnection} as a argument.
      *
-     * @param connection The connection that was established.
+     * @param connection The {@link AnonymousConnection} that was established.
      */
     @Override
-    public void onConnect(AnonymousConnection connection)
+    public void onConnect(@NonNull AnonymousConnection connection)
     {
+        log.info("Connected to edge router in anonymous mode");
         adapter.onConnect(new SMMPAnonConnection(connection));
-        log.info("Successfully connected to the anonymous network");
     }
 
 
@@ -76,26 +82,31 @@ public class AnonymousAdapterImpl implements AnonymousAdapter
     {
         try
         {
+            log.debug("Received subject cast MMTP-Message={} from {} with subject {}", messageId, sender, subject);
+
             ProtocolMessage protocolMessage = ProtocolMessage.parseFrom(message);
 
             if (protocolMessage.getType() == MessageType.MESSAGE)
             {
-                processMessage(protocolMessage, sender, messageId, subject, expires);
+                log.debug("MMTP-Message={} contained a {}", messageId, MessageType.MESSAGE);
+                processMessage(protocolMessage, sender, subject, expires);
             }
+
             else
             {
-                log.error("Received an unknown message type");
+                log.warn("MMTP-Message={} contain a a message with type ({}). Ignoring message, only {} is supported over subject cast", messageId, protocolMessage.getType(), MessageType.MESSAGE);
             }
         }
-        catch (InvalidProtocolBufferException | MissingCertificateException | CertificateValidationException | CertificateException | SignatureVerificationException | KeyStoreException e)
+        catch (InvalidProtocolBufferException | MissingCertificateException | CertificateValidationException | CertificateException | SignatureVerificationException | KeyStoreException ex)
         {
-            log.error("Error while processing message", e);
+            log.warn("Error while processing subject cast MMTP-Message={} from sender {}", messageId, sender, ex);
         }
     }
 
 
     /**
      * Called when the agent has disconnected from the edge router.
+     * Calls the {@link SMMPAnonAdapter} with the disconnect code and phrase.
      *
      * @param statusCode The status code of the disconnection
      * @param reason     The reason for the disconnection
@@ -103,30 +114,31 @@ public class AnonymousAdapterImpl implements AnonymousAdapter
     @Override
     public final void onDisconnect(int statusCode, String reason)
     {
+        log.warn("Disconnected from the anonymous connection with status code: {} and reason: {}", statusCode, reason);
         adapter.onDisconnect(statusCode, reason);
-        log.info("Disconnected from the anonymous connection with status code: {} and reason: {}", statusCode, reason);
     }
 
 
     /**
      * Called when the agent has encountered an error while connecting to the edge router.
+     * Calls the {@link SMMPAnonAdapter} with the connection error that occurred.
      *
      * @param ex The throwable that was thrown
      */
     @Override
     public final void onConnectionError(Throwable ex)
     {
+        log.warn("Error while connecting to the edge router in anonymous mode", ex);
         adapter.onConnectionError(ex);
-        log.error("Error while connecting to the anonymous connection", ex);
     }
 
 
     /**
      * Processes a SMMP message by verifying the signature and passing it to the SMMP adapter if everything is valid.
+     * Calls the {@link SMMPAnonAdapter} if the message is valid and trustworthy.
      *
      * @param protocolMessage The message to process
      * @param sender          The sender of the message
-     * @param messageId       The ID of the message
      * @param subject         The subject of the message
      * @param expires         The expiration time of the message
      * @throws InvalidProtocolBufferException If the message is not a valid protocol message
@@ -136,34 +148,41 @@ public class AnonymousAdapterImpl implements AnonymousAdapter
      * @throws CertificateValidationException If the certificate is not valid
      * @throws SignatureVerificationException If the signature is not valid
      */
-    private void processMessage(ProtocolMessage protocolMessage, String sender, String messageId, String subject, Instant expires) throws InvalidProtocolBufferException, CertificateException, KeyStoreException, MissingCertificateException, CertificateValidationException, SignatureVerificationException
+    private void processMessage(ProtocolMessage protocolMessage, String sender, String subject, Instant expires) throws InvalidProtocolBufferException, CertificateException, KeyStoreException, MissingCertificateException, CertificateValidationException, SignatureVerificationException
     {
         SMMPMessage smmpMessage = SMMPMessage.parseFrom(protocolMessage.getContent());
+        String messageId = smmpMessage.getMessageID();
         byte[] signature = smmpMessage.getSignature().toByteArray();
         byte[] content = smmpMessage.getPayload().toByteArray();
         X509Certificate certificate = getCertificate(smmpMessage.getCertificate().toByteArray());
 
         if (smmpMessage.getIsEncrypted())
         {
-            log.warn("Received an encrypted message, unable to process");
+            log.warn("Received an encrypted subject cast SMMP-message={} from sender {} with subject {}. Ignoring message", messageId, sender, subject);
             return;
         }
 
         if (!verifyCertificate(certificate, sender))
         {
-            log.warn("Received a message from an untrusted sender: {}", sender);
+            log.warn("Received a message subject cast SMMP-message={} from an untrusted sender: {} with subject {}. Ignoring message", messageId, sender, subject);
             return;
         }
 
-        if (CryptoUtils.verifySignature(keyringManager.getPublicKey(sender), content, signature))
+        if (!CryptoUtils.verifySignature(keyringManager.getPublicKey(sender), content, signature))
         {
-            adapter.onSubjectCastMessage(messageId, sender, subject, expires, content);
-            log.info("Successfully verified the signature of the message from sender: {}", sender);
+            log.warn("Failed to verify the signature of subject cast SMMP-message={} from sender {} with subject {}. Ignoring the message.", messageId, sender, subject);
+            return;
         }
-        else
+
+        if (deliveredToApplication.contains(messageId))
         {
-            log.error("Signature verification failed for message from sender: {}", sender);
+            log.warn("Message already delivered to application, likely a retransmit.");
+            return;
         }
+
+        log.debug("SMMP-message={} valid, passing to application", messageId);
+        deliveredToApplication.add(messageId);
+        adapter.onSubjectCastMessage(messageId, sender, subject, expires, content);
     }
 
 

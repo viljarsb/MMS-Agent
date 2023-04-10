@@ -31,15 +31,15 @@ private static final long serialVersionUID = 0L;
 
   public static final com.google.protobuf.Descriptors.Descriptor
       getDescriptor() {
-    return SMMPClient.MessageFormats.SMMPMessages.internal_static_SMMPClient_SMMP_SMMPMessage_descriptor;
+    return SMMPMessages.internal_static_SMMPClient_SMMP_SMMPMessage_descriptor;
   }
 
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internalGetFieldAccessorTable() {
-    return SMMPClient.MessageFormats.SMMPMessages.internal_static_SMMPClient_SMMP_SMMPMessage_fieldAccessorTable
+    return SMMPMessages.internal_static_SMMPClient_SMMP_SMMPMessage_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
-            SMMPClient.MessageFormats.SMMPMessage.class, SMMPClient.MessageFormats.SMMPMessage.Builder.class);
+            SMMPMessage.class, SMMPMessage.Builder.class);
   }
 
   public static final int MESSAGEID_FIELD_NUMBER = 1;
@@ -210,10 +210,10 @@ private static final long serialVersionUID = 0L;
     if (obj == this) {
      return true;
     }
-    if (!(obj instanceof SMMPClient.MessageFormats.SMMPMessage)) {
+    if (!(obj instanceof SMMPMessage)) {
       return super.equals(obj);
     }
-    SMMPClient.MessageFormats.SMMPMessage other = (SMMPClient.MessageFormats.SMMPMessage) obj;
+    SMMPMessage other = (SMMPMessage) obj;
 
     if (!getMessageID()
         .equals(other.getMessageID())) return false;
@@ -257,69 +257,69 @@ private static final long serialVersionUID = 0L;
     return hash;
   }
 
-  public static SMMPClient.MessageFormats.SMMPMessage parseFrom(
+  public static SMMPMessage parseFrom(
       java.nio.ByteBuffer data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static SMMPClient.MessageFormats.SMMPMessage parseFrom(
+  public static SMMPMessage parseFrom(
       java.nio.ByteBuffer data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static SMMPClient.MessageFormats.SMMPMessage parseFrom(
+  public static SMMPMessage parseFrom(
       com.google.protobuf.ByteString data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static SMMPClient.MessageFormats.SMMPMessage parseFrom(
+  public static SMMPMessage parseFrom(
       com.google.protobuf.ByteString data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static SMMPClient.MessageFormats.SMMPMessage parseFrom(byte[] data)
+  public static SMMPMessage parseFrom(byte[] data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static SMMPClient.MessageFormats.SMMPMessage parseFrom(
+  public static SMMPMessage parseFrom(
       byte[] data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static SMMPClient.MessageFormats.SMMPMessage parseFrom(java.io.InputStream input)
+  public static SMMPMessage parseFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessageV3
         .parseWithIOException(PARSER, input);
   }
-  public static SMMPClient.MessageFormats.SMMPMessage parseFrom(
+  public static SMMPMessage parseFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessageV3
         .parseWithIOException(PARSER, input, extensionRegistry);
   }
-  public static SMMPClient.MessageFormats.SMMPMessage parseDelimitedFrom(java.io.InputStream input)
+  public static SMMPMessage parseDelimitedFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessageV3
         .parseDelimitedWithIOException(PARSER, input);
   }
-  public static SMMPClient.MessageFormats.SMMPMessage parseDelimitedFrom(
+  public static SMMPMessage parseDelimitedFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessageV3
         .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
   }
-  public static SMMPClient.MessageFormats.SMMPMessage parseFrom(
+  public static SMMPMessage parseFrom(
       com.google.protobuf.CodedInputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessageV3
         .parseWithIOException(PARSER, input);
   }
-  public static SMMPClient.MessageFormats.SMMPMessage parseFrom(
+  public static SMMPMessage parseFrom(
       com.google.protobuf.CodedInputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -332,7 +332,7 @@ private static final long serialVersionUID = 0L;
   public static Builder newBuilder() {
     return DEFAULT_INSTANCE.toBuilder();
   }
-  public static Builder newBuilder(SMMPClient.MessageFormats.SMMPMessage prototype) {
+  public static Builder newBuilder(SMMPMessage prototype) {
     return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
   }
   @java.lang.Override
@@ -353,18 +353,19 @@ private static final long serialVersionUID = 0L;
   public static final class Builder extends
       com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
       // @@protoc_insertion_point(builder_implements:SMMPClient.SMMP.SMMPMessage)
-      SMMPClient.MessageFormats.SMMPMessageOrBuilder {
+          SMMPMessageOrBuilder
+  {
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return SMMPClient.MessageFormats.SMMPMessages.internal_static_SMMPClient_SMMP_SMMPMessage_descriptor;
+      return SMMPMessages.internal_static_SMMPClient_SMMP_SMMPMessage_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return SMMPClient.MessageFormats.SMMPMessages.internal_static_SMMPClient_SMMP_SMMPMessage_fieldAccessorTable
+      return SMMPMessages.internal_static_SMMPClient_SMMP_SMMPMessage_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              SMMPClient.MessageFormats.SMMPMessage.class, SMMPClient.MessageFormats.SMMPMessage.Builder.class);
+              SMMPMessage.class, SMMPMessage.Builder.class);
     }
 
     // Construct using SMMPClient.SMMP.SMMPMessage.newBuilder()
@@ -393,17 +394,17 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public com.google.protobuf.Descriptors.Descriptor
         getDescriptorForType() {
-      return SMMPClient.MessageFormats.SMMPMessages.internal_static_SMMPClient_SMMP_SMMPMessage_descriptor;
+      return SMMPMessages.internal_static_SMMPClient_SMMP_SMMPMessage_descriptor;
     }
 
     @java.lang.Override
-    public SMMPClient.MessageFormats.SMMPMessage getDefaultInstanceForType() {
-      return SMMPClient.MessageFormats.SMMPMessage.getDefaultInstance();
+    public SMMPMessage getDefaultInstanceForType() {
+      return SMMPMessage.getDefaultInstance();
     }
 
     @java.lang.Override
-    public SMMPClient.MessageFormats.SMMPMessage build() {
-      SMMPClient.MessageFormats.SMMPMessage result = buildPartial();
+    public SMMPMessage build() {
+      SMMPMessage result = buildPartial();
       if (!result.isInitialized()) {
         throw newUninitializedMessageException(result);
       }
@@ -411,14 +412,14 @@ private static final long serialVersionUID = 0L;
     }
 
     @java.lang.Override
-    public SMMPClient.MessageFormats.SMMPMessage buildPartial() {
-      SMMPClient.MessageFormats.SMMPMessage result = new SMMPClient.MessageFormats.SMMPMessage(this);
+    public SMMPMessage buildPartial() {
+      SMMPMessage result = new SMMPMessage(this);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
     }
 
-    private void buildPartial0(SMMPClient.MessageFormats.SMMPMessage result) {
+    private void buildPartial0(SMMPMessage result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.messageID_ = messageID_;
@@ -442,16 +443,16 @@ private static final long serialVersionUID = 0L;
 
     @java.lang.Override
     public Builder mergeFrom(com.google.protobuf.Message other) {
-      if (other instanceof SMMPClient.MessageFormats.SMMPMessage) {
-        return mergeFrom((SMMPClient.MessageFormats.SMMPMessage)other);
+      if (other instanceof SMMPMessage) {
+        return mergeFrom((SMMPMessage)other);
       } else {
         super.mergeFrom(other);
         return this;
       }
     }
 
-    public Builder mergeFrom(SMMPClient.MessageFormats.SMMPMessage other) {
-      if (other == SMMPClient.MessageFormats.SMMPMessage.getDefaultInstance()) return this;
+    public Builder mergeFrom(SMMPMessage other) {
+      if (other == SMMPMessage.getDefaultInstance()) return this;
       if (!other.getMessageID().isEmpty()) {
         messageID_ = other.messageID_;
         bitField0_ |= 0x00000001;
@@ -793,12 +794,12 @@ private static final long serialVersionUID = 0L;
   }
 
   // @@protoc_insertion_point(class_scope:SMMPClient.SMMP.SMMPMessage)
-  private static final SMMPClient.MessageFormats.SMMPMessage DEFAULT_INSTANCE;
+  private static final SMMPMessage DEFAULT_INSTANCE;
   static {
-    DEFAULT_INSTANCE = new SMMPClient.MessageFormats.SMMPMessage();
+    DEFAULT_INSTANCE = new SMMPMessage();
   }
 
-  public static SMMPClient.MessageFormats.SMMPMessage getDefaultInstance() {
+  public static SMMPMessage getDefaultInstance() {
     return DEFAULT_INSTANCE;
   }
 
@@ -834,7 +835,7 @@ private static final long serialVersionUID = 0L;
   }
 
   @java.lang.Override
-  public SMMPClient.MessageFormats.SMMPMessage getDefaultInstanceForType() {
+  public SMMPMessage getDefaultInstanceForType() {
     return DEFAULT_INSTANCE;
   }
 

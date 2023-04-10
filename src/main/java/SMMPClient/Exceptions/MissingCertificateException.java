@@ -1,4 +1,4 @@
-package SMMPClient.Exceptions.PkiExceptions;
+package SMMPClient.Exceptions;
 
 public class MissingCertificateException extends Exception
 {

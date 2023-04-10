@@ -1,4 +1,4 @@
-package SMMPClient.Acks;
+package SMMPClient.Acks.ResultObjects;
 
 import java.util.Collections;
 import java.util.List;

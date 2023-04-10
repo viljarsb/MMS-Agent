@@ -1,7 +1,5 @@
 package Agent.Connections;
 
-import Agent.Connections.ConnectionStatus;
-
 /**
  * An interface representing a connection to the edge router.
  */

@@ -1,9 +1,9 @@
 package SMMPClient.Crypto;
 
-import SMMPClient.Exceptions.CryptoExceptions.DecryptionException;
-import SMMPClient.Exceptions.CryptoExceptions.EncryptionException;
-import SMMPClient.Exceptions.CryptoExceptions.SignatureGenerationException;
-import SMMPClient.Exceptions.CryptoExceptions.SignatureVerificationException;
+import SMMPClient.Exceptions.DecryptionException;
+import SMMPClient.Exceptions.EncryptionException;
+import SMMPClient.Exceptions.SignatureGenerationException;
+import SMMPClient.Exceptions.SignatureVerificationException;
 import lombok.NonNull;
 import org.bouncycastle.crypto.digests.SHA512Digest;
 import org.bouncycastle.crypto.generators.HKDFBytesGenerator;
@@ -36,6 +36,8 @@ public class CryptoUtils
     {
         Security.addProvider(new BouncyCastleProvider());
     }
+
+    private CryptoUtils() {}
 
 
     /**
